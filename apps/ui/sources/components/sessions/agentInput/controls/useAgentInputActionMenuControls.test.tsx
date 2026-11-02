@@ -28,12 +28,12 @@ vi.mock('@/agents/catalog/catalog', () => ({
 }));
 
 describe('useAgentInputActionMenuControls', () => {
-    it('opens the collapsed Agent picker when Agent options are available', async () => {
+    it('opens permissions from overflow at the visible menu anchor', async () => {
         const onAgentPickerIntent = vi.fn();
         const hook = await renderHook(() => {
             const controller = useAgentInputSelectionOverlayController({
                 shouldRenderSessionModeChip: false,
-                canChangePermission: false,
+                canChangePermission: true,
                 hasMachinePopover: false,
                 hasPathPopover: false,
                 hasResumePopover: false,
@@ -58,6 +58,8 @@ describe('useAgentInputActionMenuControls', () => {
                     tint: '#fff',
                     agentId: 'codex' as never,
                     agentType: 'codex' as never,
+                    canChangePermission: true,
+                    permissionLabel: 'YOLO',
                     profileLabel: null,
                     profileIcon: 'person-outline',
                     openCollapsedOptionsPopover: () => {},
@@ -74,11 +76,11 @@ describe('useAgentInputActionMenuControls', () => {
         });
 
         await act(async () => {
-            hook.getCurrent().actionMenuActions.find((action) => action.id === 'agent')?.onPress?.();
+            hook.getCurrent().actionMenuActions.find((action) => action.id === 'permission')?.onPress?.();
         });
 
-        expect(hook.getCurrent().activeSelectionOverlay).toEqual({ id: 'agent', anchor: 'actionMenu' });
-        expect(onAgentPickerIntent).toHaveBeenCalledTimes(1);
+        expect(hook.getCurrent().activeSelectionOverlay).toEqual({ id: 'permission', anchor: 'actionMenu' });
+        expect(onAgentPickerIntent).not.toHaveBeenCalled();
         await hook.unmount();
     });
 

@@ -148,10 +148,11 @@ describe('AgentInput (action bar auto layout)', () => {
         expect(keyboardMockState.callCount).toBe(0);
     });
 
-    it('defaults to a settings menu without machine and path chips on sub-tablet widths', async () => {
+    it('keeps machine and attachments visible and permissions in the settings menu on sub-tablet widths', async () => {
         storageSettings = { ...storageSettings, agentInputChipDensity: 'labels' };
         vi.resetModules();
         const { AgentInput } = await import('./AgentInput');
+        const { createAttachmentActionChip } = await import('./sessionActions/createAttachmentActionChip');
 
         const screen = await renderScreen(
             <AgentInput
@@ -160,6 +161,7 @@ describe('AgentInput (action bar auto layout)', () => {
                 onChangeText={() => {}}
                 onSend={() => {}}
                 onPermissionClick={() => {}}
+                extraActionChips={[createAttachmentActionChip({ onPickFile: () => {}, onPickImage: () => {} })]}
                 onMachineClick={() => {}}
                 machineName="Builder"
                 onPathClick={() => {}}
@@ -174,7 +176,13 @@ describe('AgentInput (action bar auto layout)', () => {
         ));
         expect(scrollViews).toHaveLength(0);
         expect(screen.findByTestId('agent-input-action-menu-button')).not.toBeNull();
-        expect(screen.findByTestId('agent-input-machine-chip')).toBeNull();
+        expect(screen.findByTestId('agent-input-machine-chip')).not.toBeNull();
+        expect(screen.findByTestId('agent-input-attachments-chip')).not.toBeNull();
+        expect(screen.findByTestId('agent-input-machine-chip')?.props.accessibilityRole).toBe('button');
+        expect(screen.findByTestId('agent-input-machine-chip')?.props.accessibilityLabel).toBe('Builder');
+        expect(screen.findByTestId('agent-input-attachments-chip')?.props.accessibilityRole).toBe('button');
+        expect(screen.findByTestId('agent-input-attachments-chip')?.props.accessibilityLabel).toBeTruthy();
+        expect(screen.findByTestId('agent-input-permission-chip')).toBeNull();
         expect(screen.findByTestId('agent-input-path-chip')).toBeNull();
     });
 

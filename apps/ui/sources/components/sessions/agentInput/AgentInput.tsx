@@ -2640,6 +2640,9 @@ export const AgentInput = React.memo(React.forwardRef<MultiTextInputHandle, Agen
         profileIcon,
         envVarsCount: props.envVarsCount,
         engineLabel: engineChipLabel,
+        permissionLabel: effectivePermissionLabel,
+        canChangePermission: Boolean(props.onPermissionModeChange),
+        onPermissionClick: props.onPermissionClick,
         agentType: props.agentType,
         machineName: props.machineName,
         currentPath: props.currentPath,
@@ -3190,7 +3193,7 @@ export const AgentInput = React.memo(React.forwardRef<MultiTextInputHandle, Agen
                 <AgentInputOverlayLayer
                     screenWidth={screenWidth}
                     showPermissionPopover={showPermissionPopover && Boolean(props.onPermissionModeChange)}
-                    permissionChipAnchorRef={permissionChipAnchorRef}
+                    permissionChipAnchorRef={actionBarIsCollapsed ? actionMenuAnchorRef : permissionChipAnchorRef}
                     onPermissionPopoverRequestClose={closePermissionPopover}
                     onPermissionSelect={handlePermissionSelect}
                     agentId={engineChipAgentId}

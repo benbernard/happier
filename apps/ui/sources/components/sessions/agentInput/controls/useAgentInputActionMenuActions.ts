@@ -16,6 +16,8 @@ export function useAgentInputActionMenuActions(params: Readonly<{
     profileIcon: string;
     envVarsCount?: number;
     engineLabel?: string | null;
+    permissionLabel?: string | null;
+    onPermissionClick?: () => void;
     agentType?: AgentId;
     machineName?: string | null;
     currentPath?: string | null;
@@ -57,6 +59,8 @@ export function useAgentInputActionMenuActions(params: Readonly<{
             profileIcon: params.profileIcon,
             envVarsCount: params.envVarsCount,
             engineLabel: params.engineLabel,
+            permissionLabel: params.permissionLabel,
+            onPermissionClick: params.onPermissionClick,
             agentType: params.agentType,
             machineName: params.machineName,
             currentPath: params.currentPath,
@@ -87,6 +91,8 @@ export function useAgentInputActionMenuActions(params: Readonly<{
         params.dismissActionMenu,
         params.envVarsCount,
         params.engineLabel,
+        params.permissionLabel,
+        params.onPermissionClick,
         params.extraActionChips,
         params.hasAnyActions,
         params.machineName,

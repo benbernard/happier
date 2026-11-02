@@ -1006,7 +1006,7 @@ describe('AgentInput (modelOptionsOverride)', () => {
         expect(screen.findByTestId('agent-input-content-popover')).toBeTruthy();
     });
 
-    it('closes the collapsed action menu when opening the permission chip popover', async () => {
+    it('closes the collapsed action menu when opening the permission picker from its menu action', async () => {
         mockAgentInputActionBarLayout = 'collapsed';
 
         try {
@@ -1027,7 +1027,7 @@ describe('AgentInput (modelOptionsOverride)', () => {
             await screen.pressByTestIdAsync('agent-input-action-menu-button');
 
             expect(screen.findByTestId('agent-input-action-menu-overlay')).toBeTruthy();
-            await screen.pressByTestIdAsync('agent-input-permission-chip');
+            await screen.pressByTestIdAsync('agent-input-action-menu-item:permission');
             expect(screen.findByTestId('agent-input-action-menu-overlay')).toBeNull();
             expect(screen.findByTestId('agent-input-content-popover')).toBeTruthy();
         } finally {
@@ -1035,7 +1035,7 @@ describe('AgentInput (modelOptionsOverride)', () => {
         }
     });
 
-    it('reopens collapsed settings through the shared content popover transport after closing the permission chip popover', async () => {
+    it('reopens collapsed settings through the shared content popover transport after closing the permission picker', async () => {
         mockAgentInputActionBarLayout = 'collapsed';
 
         try {
@@ -1052,7 +1052,8 @@ describe('AgentInput (modelOptionsOverride)', () => {
                         modelMode: 'default',
                         onModelModeChange: () => {},
                     } as any));
-            await screen.pressByTestIdAsync('agent-input-permission-chip');
+            await screen.pressByTestIdAsync('agent-input-action-menu-button');
+            await screen.pressByTestIdAsync('agent-input-action-menu-item:permission');
             expect(screen.findByTestId('agent-input-content-popover')).toBeTruthy();
 
             expect(screen.findByTestId('agent-input-action-menu-button')).toBeTruthy();
@@ -1538,7 +1539,7 @@ describe('AgentInput (modelOptionsOverride)', () => {
         expect(lastPopoverProps?.maxWidthCap).toBe(570);
     });
 
-    it('uses the collapsed settings action as a launcher for the shared engine picker when agent picker options exist', async () => {
+    it('opens the directly visible engine picker while closing collapsed settings', async () => {
         mockAgentInputActionBarLayout = 'collapsed';
         lastModelPickerOverlayProps = null;
         lastPopoverProps = null;
@@ -1571,14 +1572,11 @@ describe('AgentInput (modelOptionsOverride)', () => {
             expect(screen.findByTestId('agent-input-action-menu-overlay')).toBeTruthy();
             expect(lastModelPickerOverlayProps).toBeNull();
 
-            const engineAction = findTestInstanceByTypeContainingText(screen.tree, 'Pressable', 'Session Model');
-            expect(engineAction).toBeTruthy();
-
-            await pressTestInstanceAsync(engineAction, 'Session Model pressable');
+            await screen.pressByTestIdAsync('agent-input-agent-chip');
 
             expect(screen.findByTestId('agent-input-action-menu-overlay')).toBeNull();
             expect(screen.findByTestId('agent-input-chip-picker-popover')).toBeTruthy();
-            expect(lastPopoverProps?.anchorRef).toBe(screen.findByTestId('agent-input-action-menu-button')!.props.ref);
+            expect(lastPopoverProps?.anchorRef).toBe(screen.findByTestId('agent-input-agent-chip')!.props.ref);
             expect((lastModelPickerOverlayProps?.options ?? []).map((o: any) => o.value)).toEqual(['default', 'session-model']);
         } finally {
             mockAgentInputActionBarLayout = 'wrap';

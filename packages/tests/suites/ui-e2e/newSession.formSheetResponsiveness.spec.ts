@@ -10,6 +10,7 @@ import { authenticateAndStartDaemon } from '../../src/testkit/uiE2e/authenticate
 import { ensureAccountReadyForConnect } from '../../src/testkit/uiE2e/ensureAccountReadyForConnect';
 import { gotoDomContentLoadedWithRetries, normalizeLoopbackBaseUrl } from '../../src/testkit/uiE2e/pageNavigation';
 import { appendBrowserDiagnostics, collectBrowserDiagnostics } from '../../src/testkit/uiE2e/browserDiagnostics';
+import { mutateUiE2eScopedAccountSettings } from '../../src/testkit/uiE2e/scopedAccountSettingsStorage';
 
 const run = createRunDirs({ runLabel: 'ui-e2e' });
 
@@ -111,6 +112,11 @@ test.describe('ui e2e: new-session formSheet responsiveness', () => {
             });
             await gotoDomContentLoadedWithRetries(page, `${uiBaseUrl}/?happier_hmr=0`, 240_000);
             await ensureAccountReadyForConnect({ page, timeoutMs: 120_000, clickCreateAccount: false });
+            await mutateUiE2eScopedAccountSettings({
+                page,
+                experiments: true,
+                featureToggles: { 'attachments.uploads': true },
+            });
             authStorageState = await authContext.storageState();
         } finally {
             await authContext.close();
@@ -175,11 +181,17 @@ test.describe('ui e2e: new-session formSheet responsiveness', () => {
                     await expect(menu).toBeInViewport({ ratio: 1 });
                     await expect(submit).toBeInViewport({ ratio: 1 });
                     await expect(page.getByTestId('agent-input-path-chip')).toHaveCount(0);
+                    await expect(page.getByTestId('agent-input-machine-chip')).toBeVisible();
+                    await expect(page.getByTestId('agent-input-attachments-chip')).toBeVisible();
+                    await expect(page.getByTestId('agent-input-permission-chip')).toHaveCount(0);
                     await input.fill('Improve the input layout without losing my draft.');
                     await expect.poll(() => input.evaluate((node) => Number.parseFloat(getComputedStyle(node).fontSize))).toBeGreaterThanOrEqual(16 * size.fontScale);
                     await page.screenshot({ path: test.info().outputPath(`composer-${size.width}x${size.height}.png`) });
                     await menu.click();
                     await expect(page.getByTestId('agent-input-action-menu-overlay')).toBeVisible();
+                    await page.getByTestId('agent-input-action-menu-item:permission').click();
+                    await expect(page.getByTestId('agent-input-content-popover')).toBeVisible();
+                    await expect(page.getByTestId('agent-input-content-popover')).toBeInViewport({ ratio: 1 });
                     await page.screenshot({ path: test.info().outputPath(`menu-${size.width}x${size.height}.png`) });
                     await page.keyboard.press('Escape');
                     await expect(input).toHaveValue('Improve the input layout without losing my draft.');

@@ -16,11 +16,17 @@ appId: ${HAPPIER_E2E_MOBILE_APP_ID}
 - tapOn:
     point: 50%,20%
 
-# Permission mode chip should open the shared content popover and allow selection.
+# Machine and attachments stay directly available; permissions move into overflow.
 - assertVisible:
+    id: agent-input-machine-chip
+- assertVisible:
+    id: agent-input-attachments-chip
+- assertNotVisible:
     id: agent-input-permission-chip
 - tapOn:
-    id: agent-input-permission-chip
+    id: agent-input-action-menu-button
+- tapOn:
+    id: 'agent-input-action-menu-item:permission'
 - assertVisible:
     id: agent-input-content-popover
 - tapOn:

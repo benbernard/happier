@@ -363,7 +363,7 @@ import { useEnabledAgentIds } from '@/agents/hooks/useEnabledAgentIds';
 import { getResolvedBackendCatalogEntries } from '@/agents/backendCatalog/getResolvedBackendCatalogEntries';
 import { useInSessionAgentPickerControls } from '@/components/sessions/agentPicker/useInSessionAgentPickerControls';
 import { getSessionStorageKind } from '@/sync/domains/session/sessionStorageKind';
-import { isMachineOnline } from '@/utils/sessions/machineUtils';
+import { getMachineDisplayName, isMachineOnline } from '@/utils/sessions/machineUtils';
 import { readDirectSessionLink } from '@/sync/domains/session/directSessions/readDirectSessionLink';
 import type { SessionParticipantTarget } from '@/sync/domains/session/participants/participantTargets';
 import type { PendingMessage } from '@/sync/domains/state/storageTypes';
@@ -2601,6 +2601,10 @@ function SessionViewLoaded({
     const goalControlMachineId = controlMachineTarget?.machineId ?? machineId;
     const goalControlMachine = useMachine(typeof goalControlMachineId === 'string' ? goalControlMachineId : '');
     const sessionMachineRecord = useMachine(typeof machineId === 'string' ? machineId : '');
+    const handleOpenMachineDetails = React.useCallback(() => {
+        if (!machineId) return;
+        router.push(`/machine/${encodeURIComponent(machineId)}?serverId=${encodeURIComponent(sessionRouteServerId)}`);
+    }, [machineId, router, sessionRouteServerId]);
     const daemonGoalControlsSupported = goalControlMachine?.metadata?.daemonSessionGoalControlsSupported === true;
     const isCliOutdated = cliVersion && !isVersionSupported(cliVersion, MINIMUM_CLI_VERSION);
     const isAcknowledged = machineId && acknowledgedCliVersions[machineId] === cliVersion;
@@ -6439,6 +6443,8 @@ function SessionViewLoaded({
                 inputComposerCaptureTransientStateRef={inputComposerCaptureTransientStateRef}
                 inputComposerRestoreTransientStateRef={inputComposerRestoreTransientStateRef}
                 agentType={liveComposerState.agentId}
+                machineName={getMachineDisplayName(sessionMachineRecord) ?? machineName}
+                onMachineClick={machineId ? handleOpenMachineDetails : undefined}
                 armedContinuationTarget={armedContinuationTarget}
                 composeAgentPickerOptions={inSessionAgentPicker.composeAgentPickerOptions}
                 onAgentPickerIntent={inSessionAgentPicker.onAgentPickerIntent}
