@@ -1,6 +1,6 @@
 import * as React from 'react';
 import type { ViewStyle } from 'react-native';
-import { Keyboard, Platform, Pressable, View, useWindowDimensions } from 'react-native';
+import { Keyboard, Platform, Pressable, ScrollView, View, useWindowDimensions } from 'react-native';
 import { useNavigation, useRouter } from 'expo-router';
 import Animated, {
     runOnJS,
@@ -22,6 +22,7 @@ import {
 } from '@/components/sessions/new/components/NewSessionComposerCloseButton';
 import { safeRouterBack } from '@/utils/navigation/safeRouterBack';
 import { AgentInput } from '@/components/sessions/agentInput';
+import { useLocalSetting } from '@/sync/domains/state/storage';
 import { AttachmentFilePicker } from '@/components/sessions/attachments/AttachmentFilePicker';
 import { PopoverBoundaryProvider } from '@/components/ui/popover';
 import { t } from '@/text';
@@ -40,6 +41,8 @@ import {
 } from '@/components/sessions/keyboardAvoidance';
 
 const SIMPLE_NEW_SESSION_MIN_TOP_GAP = 8;
+// Status, one input line, 48dp controls and panel spacing must fit together.
+const SIMPLE_NEW_SESSION_MIN_COMPOSER_HEIGHT = 200;
 
 /**
  * How far the composer card travels on entry.
@@ -499,6 +502,15 @@ function NewSessionSimplePanelComposer({
     // RENDER CHURN: the composer input is the only thing that re-renders per keystroke.
     // Everything above it (panel, keyboard scaffold, screen model) stays put.
     const sessionPrompt = useNewSessionPromptValue(props.promptStore);
+    const { fontScale } = useWindowDimensions();
+    const uiFontScale = useLocalSetting('uiFontScale');
+    // A landscape IME can leave less height than the status row, input and 48dp
+    // controls need. Keep those rows at their natural size and scroll the whole
+    // composer rather than clipping its card below its own minimum content.
+    const scrollComposer = Platform.OS !== 'web'
+        && typeof maxPanelHeight === 'number'
+        && maxPanelHeight < SIMPLE_NEW_SESSION_MIN_COMPOSER_HEIGHT * fontScale * uiFontScale;
+    const ComposerViewport = Platform.OS === 'web' ? View : ScrollView;
 
     return (
         <View
@@ -512,85 +524,95 @@ function NewSessionSimplePanelComposer({
                 <View
                     style={{ width: '100%', alignSelf: 'center' }}
                 >
-                    {props.composerTopContent}
-                    <AgentInput
-                        value={sessionPrompt}
-                        onChangeText={props.setSessionPrompt}
-                        onSend={attachmentsController.handleSend}
-                        isSendDisabled={!props.canCreate}
-                        isSending={props.isCreating}
-                        placeholder={t('session.inputPlaceholder')}
-                        autocompleteKinds={props.emptyAutocompleteKinds}
-                        autocompleteSuggestions={props.emptyAutocompleteSuggestions}
-                        extraActionChips={attachmentsController.extraActionChips}
-                        inputMaxHeight={props.sessionPromptInputMaxHeight}
-                        minHeight={typeof maxPanelHeight === 'number' ? maxPanelHeight * 0.7 : undefined}
-                        maxPanelHeight={maxPanelHeight}
-                        panelMaxHeightMode="host-constrained"
-                        submitAccessibilityLabel={props.submitAccessibilityLabel}
-                        agentType={props.agentType}
-                        agentLabel={props.agentLabel}
-                        onAgentClick={props.handleAgentClick}
-                        agentPickerOptions={props.agentPickerOptions}
-                        agentPickerSelectedOptionId={props.agentPickerSelectedOptionId}
-                        onAgentPickerSelect={props.onAgentPickerSelect}
-                        agentPickerApplyLabel={props.agentPickerApplyLabel}
-                        agentPickerProbe={props.agentPickerProbe}
-                        attachments={attachmentsController.agentInputAttachments}
-                        onAttachmentsAdded={attachmentsController.attachmentsUploadsEnabled ? attachmentsController.addWebFiles : undefined}
-                        hasSendableAttachments={attachmentsController.hasSendableAttachments}
-                        permissionMode={props.permissionMode}
-                        onPermissionModeChange={props.handlePermissionModeChange}
-                        modelMode={props.modelMode}
-                        onModelModeChange={props.setModelMode}
-                        modelOptionsOverride={props.modelOptions}
-                        modelOptionsOverrideProbe={props.modelOptionsProbe}
-                        acpSessionModeOptionsOverride={props.acpSessionModeOptions}
-                        acpSessionModeSelectedIdOverride={props.acpSessionModeId ?? null}
-                        acpSessionModeOptionsOverrideProbe={props.acpSessionModeProbe}
-                        onAcpSessionModeChange={
-                            (props.acpSessionModeOptions?.length ?? 0) > 0 && props.setAcpSessionModeId
-                                ? (modeId) => props.setAcpSessionModeId?.(resolveRequestedSessionModeId(modeId, props.acpSessionModeOptions) || null)
-                                : undefined
-                        }
-                        acpConfigOptionsOverride={props.acpConfigOptions}
-                        acpConfigOptionsOverrideProbe={props.acpConfigOptionsProbe}
-                        acpConfigOptionOverridesOverride={props.acpConfigOptionOverrides ?? null}
-                        onSessionConfigOptionChange={props.setSessionConfigOptionOverride}
-                        connectionStatus={props.connectionStatus}
-                        statusBadges={props.statusBadges}
-                        statusTrailingActions={props.statusTrailingActions}
-                        showStatusPermissionMode={false}
-                        machineName={props.machineName}
-                        machinePopover={props.machinePopover}
-                        onMachineClick={undefined}
-                        currentPath={props.selectedPath}
-                        onPathClick={undefined}
-                        pathPopover={props.pathPopover}
-                        resumeSessionId={props.showResumePicker ? props.resumeSessionId : undefined}
-                        onResumeClick={undefined}
-                        resumePopover={props.showResumePicker ? props.resumePopover : undefined}
-                        resumeIsChecking={props.isResumeSupportChecking}
-                        contentPaddingHorizontal={0}
-                        maxWidthCap={null}
-                        {...(props.useProfiles
-                            ? {
-                                profileId: props.selectedProfileId,
-                                profilePopover: props.profilePopover,
-                                onProfileClick: undefined,
-                                envVarsCount: undefined,
-                                envVarsPopover: undefined,
-                                onEnvVarsClick: undefined,
+                    <ComposerViewport
+                        testID="new-session-composer-scroll-viewport"
+                        style={Platform.OS !== 'web' ? { maxHeight: maxPanelHeight, flexGrow: 0 } : undefined}
+                        {...(Platform.OS !== 'web' ? {
+                            scrollEnabled: true,
+                            keyboardShouldPersistTaps: 'handled' as const,
+                            nestedScrollEnabled: true,
+                        } : {})}
+                    >
+                        {props.composerTopContent}
+                        <AgentInput
+                            value={sessionPrompt}
+                            onChangeText={props.setSessionPrompt}
+                            onSend={attachmentsController.handleSend}
+                            isSendDisabled={!props.canCreate}
+                            isSending={props.isCreating}
+                            placeholder={t('session.inputPlaceholder')}
+                            autocompleteKinds={props.emptyAutocompleteKinds}
+                            autocompleteSuggestions={props.emptyAutocompleteSuggestions}
+                            extraActionChips={attachmentsController.extraActionChips}
+                            inputMaxHeight={scrollComposer ? 120 : props.sessionPromptInputMaxHeight}
+                            minHeight={scrollComposer ? 40 : typeof maxPanelHeight === 'number' ? maxPanelHeight * 0.7 : undefined}
+                            maxPanelHeight={scrollComposer ? undefined : maxPanelHeight}
+                            panelMaxHeightMode="host-constrained"
+                            submitAccessibilityLabel={props.submitAccessibilityLabel}
+                            agentType={props.agentType}
+                            agentLabel={props.agentLabel}
+                            onAgentClick={props.handleAgentClick}
+                            agentPickerOptions={props.agentPickerOptions}
+                            agentPickerSelectedOptionId={props.agentPickerSelectedOptionId}
+                            onAgentPickerSelect={props.onAgentPickerSelect}
+                            agentPickerApplyLabel={props.agentPickerApplyLabel}
+                            agentPickerProbe={props.agentPickerProbe}
+                            attachments={attachmentsController.agentInputAttachments}
+                            onAttachmentsAdded={attachmentsController.attachmentsUploadsEnabled ? attachmentsController.addWebFiles : undefined}
+                            hasSendableAttachments={attachmentsController.hasSendableAttachments}
+                            permissionMode={props.permissionMode}
+                            onPermissionModeChange={props.handlePermissionModeChange}
+                            modelMode={props.modelMode}
+                            onModelModeChange={props.setModelMode}
+                            modelOptionsOverride={props.modelOptions}
+                            modelOptionsOverrideProbe={props.modelOptionsProbe}
+                            acpSessionModeOptionsOverride={props.acpSessionModeOptions}
+                            acpSessionModeSelectedIdOverride={props.acpSessionModeId ?? null}
+                            acpSessionModeOptionsOverrideProbe={props.acpSessionModeProbe}
+                            onAcpSessionModeChange={
+                                (props.acpSessionModeOptions?.length ?? 0) > 0 && props.setAcpSessionModeId
+                                    ? (modeId) => props.setAcpSessionModeId?.(resolveRequestedSessionModeId(modeId, props.acpSessionModeOptions) || null)
+                                    : undefined
                             }
-                            : {})}
-                    />
-                    {attachmentsController.attachmentsUploadsEnabled ? (
-                        <AttachmentFilePicker
-                            ref={attachmentsController.filePickerRef}
-                            onAttachmentsPicked={attachmentsController.addPickedAttachments}
-                            multiple
+                            acpConfigOptionsOverride={props.acpConfigOptions}
+                            acpConfigOptionsOverrideProbe={props.acpConfigOptionsProbe}
+                            acpConfigOptionOverridesOverride={props.acpConfigOptionOverrides ?? null}
+                            onSessionConfigOptionChange={props.setSessionConfigOptionOverride}
+                            connectionStatus={props.connectionStatus}
+                            statusBadges={props.statusBadges}
+                            statusTrailingActions={props.statusTrailingActions}
+                            showStatusPermissionMode={false}
+                            machineName={props.machineName}
+                            machinePopover={props.machinePopover}
+                            onMachineClick={undefined}
+                            currentPath={props.selectedPath}
+                            onPathClick={undefined}
+                            pathPopover={props.pathPopover}
+                            resumeSessionId={props.showResumePicker ? props.resumeSessionId : undefined}
+                            onResumeClick={undefined}
+                            resumePopover={props.showResumePicker ? props.resumePopover : undefined}
+                            resumeIsChecking={props.isResumeSupportChecking}
+                            contentPaddingHorizontal={0}
+                            maxWidthCap={null}
+                            {...(props.useProfiles
+                                ? {
+                                    profileId: props.selectedProfileId,
+                                    profilePopover: props.profilePopover,
+                                    onProfileClick: undefined,
+                                    envVarsCount: undefined,
+                                    envVarsPopover: undefined,
+                                    onEnvVarsClick: undefined,
+                                }
+                                : {})}
                         />
-                    ) : null}
+                        {attachmentsController.attachmentsUploadsEnabled ? (
+                            <AttachmentFilePicker
+                                ref={attachmentsController.filePickerRef}
+                                onAttachmentsPicked={attachmentsController.addPickedAttachments}
+                                multiple
+                            />
+                        ) : null}
+                    </ComposerViewport>
                 </View>
             </View>
         </View>

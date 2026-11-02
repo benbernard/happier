@@ -20,6 +20,7 @@ import { createNewSessionPromptStore } from '@/components/sessions/new/hooks/scr
 const testState = vi.hoisted(() => ({
     agentInputProps: [] as Array<Record<string, unknown>>,
     keyboardDismiss: vi.fn(),
+    uiFontScale: 1,
     platformOs: 'ios' as 'ios' | 'android' | 'web',
     scaffoldAvailablePanelHeight: 360 as number | undefined,
     scaffoldHarness: undefined as MockComposerKeyboardScaffoldHarness | undefined,
@@ -34,6 +35,8 @@ installNewSessionComponentsCommonModuleMocks({
                 React.createElement('View', props, props.children),
             Text: (props: Record<string, unknown> & { children?: React.ReactNode }) =>
                 React.createElement('Text', props, props.children),
+            ScrollView: (props: Record<string, unknown> & { children?: React.ReactNode }) =>
+                React.createElement('ScrollView', props, props.children),
             Pressable: (props: Record<string, unknown> & { children?: React.ReactNode }) =>
                 React.createElement('Pressable', props, props.children),
             AppState: {
@@ -50,7 +53,7 @@ installNewSessionComponentsCommonModuleMocks({
                 select: (value: Record<string, unknown>) =>
                     value[testState.platformOs] ?? value.native ?? value.default ?? value.ios ?? value.android,
             },
-            useWindowDimensions: () => ({ width: 390, height: 700 }),
+            useWindowDimensions: () => ({ width: 390, height: 700, scale: 1, fontScale: 1 }),
             Dimensions: {
                 get: () => ({ width: 390, height: 700, scale: 1, fontScale: 1 }),
             },
@@ -61,8 +64,9 @@ installNewSessionComponentsCommonModuleMocks({
         return createTextModuleMock({ translate: (key) => key });
     },
     storage: async (importOriginal) => {
-        const { createPartialStorageModuleMock } = await import('@/dev/testkit/mocks/storage');
+        const { createPartialStorageModuleMock, createUseLocalSettingMock } = await import('@/dev/testkit/mocks/storage');
         return createPartialStorageModuleMock(importOriginal, {
+            useLocalSetting: createUseLocalSettingMock({ values: { get uiFontScale() { return testState.uiFontScale; } } }),
             useSettings: () => ({
                 profiles: [],
                 agentInputEnterToSend: true,
@@ -184,6 +188,7 @@ describe('NewSessionSimplePanel keyboard scaffold integration', () => {
         testState.agentInputProps = [];
         testState.keyboardDismiss.mockReset();
         testState.platformOs = 'ios';
+        testState.uiFontScale = 1;
         testState.scaffoldAvailablePanelHeight = 360;
         testState.scaffoldHarness = createMockComposerKeyboardScaffoldHarness();
         testState.keyboardLayout = undefined;
@@ -191,6 +196,55 @@ describe('NewSessionSimplePanel keyboard scaffold integration', () => {
 
     afterEach(() => {
         standardCleanup();
+    });
+
+    it('keeps the full composer scrollable when a landscape keyboard leaves less room than its controls', async () => {
+        testState.platformOs = 'android';
+        testState.scaffoldAvailablePanelHeight = 126;
+        const { NewSessionSimplePanel } = await import('./NewSessionSimplePanel');
+        const props = createFloatingPanelProps();
+        const screen = await renderScreen(<NewSessionSimplePanel {...props} />);
+        try {
+            const viewport = screen.tree.root.findAll((node) => String(node.type) === 'ScrollView'
+                && node.props.testID === 'new-session-composer-scroll-viewport')[0];
+            expect(viewport).toBeDefined();
+            expect(viewport.type).toBe('ScrollView');
+            expect(viewport.props.scrollEnabled).toBe(true);
+            expect(viewport.props.keyboardShouldPersistTaps).toBe('handled');
+            const input = testState.agentInputProps.at(-1);
+            // A 28dp card cannot contain its 40dp input and 48dp actions. Let the
+            // full content scroll instead of imposing that clipping constraint.
+            expect(input?.maxPanelHeight).toBeUndefined();
+            expect(input?.minHeight).toBeGreaterThanOrEqual(40);
+        } finally {
+            act(() => { screen.tree.unmount(); });
+        }
+    });
+
+    it('allows overflow from content above the input to scroll at normal height', async () => {
+        testState.platformOs = 'android';
+        const { NewSessionSimplePanel } = await import('./NewSessionSimplePanel');
+        const screen = await renderScreen(<NewSessionSimplePanel {...createFloatingPanelProps()}
+            composerTopContent={<div>Draft conflict</div>} />);
+        try {
+            const viewport = screen.tree.root.findAll((node) => String(node.type) === 'ScrollView'
+                && node.props.testID === 'new-session-composer-scroll-viewport')[0];
+            expect(viewport.props.scrollEnabled).toBe(true);
+        } finally {
+            act(() => { screen.tree.unmount(); });
+        }
+    });
+
+    it('respects the app text-size setting when reserving space for composer controls', async () => {
+        testState.platformOs = 'android';
+        testState.uiFontScale = 2;
+        const { NewSessionSimplePanel } = await import('./NewSessionSimplePanel');
+        const screen = await renderScreen(<NewSessionSimplePanel {...createFloatingPanelProps()} />);
+        try {
+            expect(testState.agentInputProps.at(-1)?.maxPanelHeight).toBeUndefined();
+        } finally {
+            act(() => { screen.tree.unmount(); });
+        }
     });
 
     it('hands AgentInput the available panel height less the chrome this host draws in it', async () => {
