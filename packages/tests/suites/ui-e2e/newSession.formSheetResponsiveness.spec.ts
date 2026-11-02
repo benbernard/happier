@@ -9,6 +9,7 @@ import { type StartedDaemon } from '../../src/testkit/daemon/daemon';
 import { authenticateAndStartDaemon } from '../../src/testkit/uiE2e/authenticateAndStartDaemon';
 import { ensureAccountReadyForConnect } from '../../src/testkit/uiE2e/ensureAccountReadyForConnect';
 import { gotoDomContentLoadedWithRetries, normalizeLoopbackBaseUrl } from '../../src/testkit/uiE2e/pageNavigation';
+import { appendBrowserDiagnostics, collectBrowserDiagnostics } from '../../src/testkit/uiE2e/browserDiagnostics';
 
 const run = createRunDirs({ runLabel: 'ui-e2e' });
 
@@ -74,6 +75,8 @@ test.describe('ui e2e: new-session formSheet responsiveness', () => {
             dbProvider: 'sqlite',
             extraEnv: {
                 HAPPIER_BUILD_FEATURES_DENY: 'sharing.contentKeys',
+                HAPPIER_PUBLIC_SERVER_URL: '',
+                HAPPIER_LOCAL_SERVER_URL: '',
             },
         });
 
@@ -81,6 +84,7 @@ test.describe('ui e2e: new-session formSheet responsiveness', () => {
             testDir: suiteDir,
             env: {
                 ...process.env,
+                EXPO_PUBLIC_HAPPIER_SERVER_URL: server.baseUrl,
                 EXPO_PUBLIC_HAPPY_SERVER_URL: server.baseUrl,
                 EXPO_PUBLIC_HAPPY_STORAGE_SCOPE: `e2e-${run.runId}`,
             },
@@ -100,6 +104,10 @@ test.describe('ui e2e: new-session formSheet responsiveness', () => {
                 uiBaseUrl,
                 terminalConnectUrlTimeoutMs: 180_000,
                 daemonStartupTimeoutMs: 180_000,
+                extraEnv: {
+                    HAPPIER_PUBLIC_SERVER_URL: server.baseUrl,
+                    HAPPIER_LOCAL_SERVER_URL: server.baseUrl,
+                },
             });
             await gotoDomContentLoadedWithRetries(page, `${uiBaseUrl}/?happier_hmr=0`, 240_000);
             await ensureAccountReadyForConnect({ page, timeoutMs: 120_000, clickCreateAccount: false });
@@ -122,19 +130,65 @@ test.describe('ui e2e: new-session formSheet responsiveness', () => {
 
         const context = await browser.newContext({ storageState: authStorageState });
         try {
-            const page = await openNewSessionFromSessionsSurface(context, uiBaseUrl);
+            const { page, diagnostics } = await openNewSessionFromSessionsSurface(context, uiBaseUrl);
+            try {
 
-            await page.getByTestId('new-session-composer-input').fill('formsheet responsiveness smoke');
-            await expect(page.getByTestId('new-session-composer-input')).toHaveValue('formsheet responsiveness smoke');
-            await expect(page.getByTestId('new-session-composer-send')).toBeVisible({ timeout: 60_000 });
+                await page.getByTestId('new-session-composer-input').fill('formsheet responsiveness smoke');
+                await expect(page.getByTestId('new-session-composer-input')).toHaveValue('formsheet responsiveness smoke');
+                await expect(page.getByTestId('new-session-composer-send')).toBeVisible({ timeout: 60_000 });
 
-            await expect(page.getByTestId('new-session-cancel')).toBeVisible({ timeout: 60_000 });
-            await page.getByTestId('new-session-cancel').click();
+                await expect(page.getByTestId('new-session-cancel')).toBeVisible({ timeout: 60_000 });
+                await page.getByTestId('new-session-cancel').click();
 
-            await page.waitForURL((url) => !url.pathname.endsWith('/new'), { timeout: 60_000 });
-            await expect(page.getByTestId('new-session-composer-input')).toHaveCount(0);
+                await page.waitForURL((url) => !url.pathname.endsWith('/new'), { timeout: 60_000 });
+                await expect(page.getByTestId('new-session-composer-input')).toHaveCount(0);
+            } catch (error) {
+                throw appendBrowserDiagnostics(error, diagnostics());
+            }
         } finally {
             await context.close();
+        }
+    });
+
+    test('keeps the large editor and overflow usable on phone, unfolded and short windows', async ({ browser }) => {
+        test.setTimeout(240_000);
+        if (!uiBaseUrl || !authStorageState) throw new Error('missing ui/auth fixtures');
+        for (const size of [
+            { width: 390, height: 844, fontScale: 1, colorScheme: 'light' as const },
+            { width: 840, height: 920, fontScale: 2, colorScheme: 'dark' as const },
+            { width: 844, height: 390, fontScale: 2, colorScheme: 'dark' as const },
+        ]) {
+            const context = await browser.newContext({ storageState: authStorageState, viewport: size, colorScheme: size.colorScheme });
+            try {
+                await context.addInitScript((fontScale) => {
+                    window.localStorage.setItem('mmkv.default\\local-settings', JSON.stringify({ uiFontScale: fontScale }));
+                }, size.fontScale);
+                const { page, diagnostics } = await openNewSessionFromSessionsSurface(context, uiBaseUrl);
+                try {
+                    const input = page.getByTestId('new-session-composer-input');
+                    const menu = page.getByTestId('agent-input-action-menu-button');
+                    const submit = page.getByTestId('new-session-composer-send');
+                    await expect(input).toBeVisible();
+                    await expect(menu).toBeVisible();
+                    await expect(submit).toBeVisible();
+                    await expect(input).toBeInViewport({ ratio: 1 });
+                    await expect(menu).toBeInViewport({ ratio: 1 });
+                    await expect(submit).toBeInViewport({ ratio: 1 });
+                    await expect(page.getByTestId('agent-input-path-chip')).toHaveCount(0);
+                    await input.fill('Improve the input layout without losing my draft.');
+                    await expect.poll(() => input.evaluate((node) => Number.parseFloat(getComputedStyle(node).fontSize))).toBeGreaterThanOrEqual(16 * size.fontScale);
+                    await page.screenshot({ path: test.info().outputPath(`composer-${size.width}x${size.height}.png`) });
+                    await menu.click();
+                    await expect(page.getByTestId('agent-input-action-menu-overlay')).toBeVisible();
+                    await page.screenshot({ path: test.info().outputPath(`menu-${size.width}x${size.height}.png`) });
+                    await page.keyboard.press('Escape');
+                    await expect(input).toHaveValue('Improve the input layout without losing my draft.');
+                } catch (error) {
+                    throw appendBrowserDiagnostics(error, diagnostics());
+                }
+            } finally {
+                await context.close();
+            }
         }
     });
 
@@ -148,28 +202,50 @@ test.describe('ui e2e: new-session formSheet responsiveness', () => {
             viewport: { width: 1440, height: 900 },
         });
         try {
-            const page = await openNewSessionFromSessionsSurface(context, uiBaseUrl);
-            const composer = page.getByTestId('new-session-composer-input');
-            await composer.focus();
-            const initialInputHeight = await composer.evaluate((input: HTMLTextAreaElement) => input.offsetHeight);
+            const { page, diagnostics } = await openNewSessionFromSessionsSurface(context, uiBaseUrl);
+            try {
+                const composer = page.getByTestId('new-session-composer-input');
+                await composer.focus();
+                await expect.poll(async () => {
+                    const inputHeight = await composer.evaluate((input: HTMLTextAreaElement) => input.offsetHeight);
+                    const hostHeight = await page.getByTestId('new-session-keyboard-host').evaluate((node) => node.clientHeight);
+                    return inputHeight / hostHeight;
+                }).toBeGreaterThan(0.5);
+                const initialInputHeight = await composer.evaluate((input: HTMLTextAreaElement) => input.offsetHeight);
+                const scaffoldHeight = await page.getByTestId('new-session-keyboard-host').evaluate((node) => node.clientHeight);
+                await writeFile(test.info().outputPath('composer-geometry.json'), JSON.stringify(await composer.evaluate((input) => {
+                    const ancestors = [];
+                    for (let node: HTMLElement | null = input; node; node = node.parentElement) {
+                        const style = getComputedStyle(node);
+                        const bounds = node.getBoundingClientRect();
+                        ancestors.push({ testID: node.dataset.testid, tag: node.tagName, height: bounds.height, top: bounds.top, flex: style.flex, maxHeight: style.maxHeight, minHeight: style.minHeight, cssHeight: style.height });
+                    }
+                    return { viewport: { width: innerWidth, height: innerHeight }, ancestors };
+                }), null, 2));
+                expect(initialInputHeight).toBeGreaterThan(scaffoldHeight * 0.5);
+                await expect(page.getByTestId('agent-input-action-menu-button')).toBeVisible();
+                await expect(page.getByTestId('agent-input-path-chip')).toHaveCount(0);
 
-            const largePrompt = Array.from(
-                { length: 300 },
-                (_, index) => `${index + 1}. Handoff step: inspect the owner, write the failing test, then fix it.`,
-            ).join('\n');
-            const trace = await recordComposerHeightsAcrossPaste(page, largePrompt);
-            const tracePath = test.info().outputPath('composer-height-trace.json');
-            await writeFile(tracePath, JSON.stringify(trace, null, 2));
-            await test.info().attach('composer-height-trace.json', { path: tracePath, contentType: 'application/json' });
+                const largePrompt = Array.from(
+                    { length: 300 },
+                    (_, index) => `${index + 1}. Handoff step: inspect the owner, write the failing test, then fix it.`,
+                ).join('\n');
+                const trace = await recordComposerHeightsAcrossPaste(page, largePrompt);
+                const tracePath = test.info().outputPath('composer-height-trace.json');
+                await writeFile(tracePath, JSON.stringify(trace, null, 2));
+                await test.info().attach('composer-height-trace.json', { path: tracePath, contentType: 'application/json' });
 
-            await expect(composer).toHaveValue(largePrompt);
-            expect(trace.inputHeights.length).toBeGreaterThan(30);
-            expect(trace.inputHeights.at(-1)).toBeGreaterThan(initialInputHeight);
-            // Pasting is one input event: the composer must reach its final height in the
-            // frame after the paste and stay there, not creep toward it over many frames.
-            expect(countHeightChanges(trace.inputHeights)).toBeLessThanOrEqual(1);
-            expect(countHeightChanges(trace.panelHeights)).toBeLessThanOrEqual(1);
-            expect(countHeightChanges(trace.scaffoldHeights)).toBeLessThanOrEqual(1);
+                await expect(composer).toHaveValue(largePrompt);
+                expect(trace.inputHeights.length).toBeGreaterThan(30);
+                expect(trace.inputHeights.at(-1)).toBeGreaterThan(initialInputHeight);
+                // Pasting is one input event: the composer must reach its final height in the
+                // frame after the paste and stay there, not creep toward it over many frames.
+                expect(countHeightChanges(trace.inputHeights)).toBeLessThanOrEqual(1);
+                expect(countHeightChanges(trace.panelHeights)).toBeLessThanOrEqual(1);
+                expect(countHeightChanges(trace.scaffoldHeights)).toBeLessThanOrEqual(1);
+            } catch (error) {
+                throw appendBrowserDiagnostics(error, diagnostics());
+            }
         } finally {
             await context.close();
         }
@@ -178,17 +254,26 @@ test.describe('ui e2e: new-session formSheet responsiveness', () => {
 
 type AuthStorageState = Awaited<ReturnType<BrowserContext['storageState']>>;
 
-async function openNewSessionFromSessionsSurface(context: BrowserContext, uiBaseUrl: string): Promise<Page> {
+async function openNewSessionFromSessionsSurface(context: BrowserContext, uiBaseUrl: string): Promise<{
+    page: Page;
+    diagnostics: () => string;
+}> {
     const page = await context.newPage();
-    await gotoDomContentLoadedWithRetries(page, `${uiBaseUrl}/?happier_hmr=0`, 240_000);
-    // The entry button can be replaced while the restored session list hydrates.
-    await expect(async () => {
-        const startNewSession = await waitForVisibleByTestId(page, startNewSessionTestIds, 10_000);
-        await startNewSession.click({ timeout: 5_000 });
-    }).toPass({ timeout: 120_000 });
-    await page.waitForURL((url) => url.pathname.endsWith('/new'), { timeout: 60_000 });
-    await expect(page.getByTestId('new-session-composer-input')).toBeVisible({ timeout: 60_000 });
-    return page;
+    const diagnostics = collectBrowserDiagnostics({ page });
+    try {
+        await gotoDomContentLoadedWithRetries(page, `${uiBaseUrl}/?happier_hmr=0`, 240_000);
+        // The entry button can be replaced while the restored session list hydrates.
+        await expect(async () => {
+            const startNewSession = await waitForVisibleByTestId(page, startNewSessionTestIds, 10_000);
+            await startNewSession.click({ timeout: 5_000 });
+        }).toPass({ timeout: 120_000 });
+        await page.waitForURL((url) => url.pathname.endsWith('/new'), { timeout: 60_000 });
+        await expect(page.getByTestId('new-session-composer-input')).toBeVisible({ timeout: 60_000 });
+        await expect(page.getByTestId('new-session-keyboard-host')).toBeInViewport({ ratio: 1 });
+        return { page, diagnostics };
+    } catch (error) {
+        throw appendBrowserDiagnostics(error, diagnostics());
+    }
 }
 
 type ComposerHeightTrace = Readonly<{
