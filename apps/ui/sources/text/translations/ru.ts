@@ -5552,6 +5552,7 @@ export const ru: TranslationStructure = {
     locationLabel: "Расположение",
     checkoutLabel: "Проверить",
     happySessionIdCopied: "ID сессии Happier скопирован в буфер обмена",
+    copySessionId: "Копировать ID сессии Happier",
     failedToCopySessionId: "Не удалось скопировать ID сессии Happier",
     happySessionId: "ID сессии Happier",
     claudeCodeSessionId: "ID сессии Claude Code",

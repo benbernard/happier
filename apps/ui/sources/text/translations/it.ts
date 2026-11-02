@@ -6953,6 +6953,7 @@ export const it: TranslationStructure = {
     locationLabel: "Posizione",
     checkoutLabel: "Check-out",
     happySessionIdCopied: "ID sessione Happier copiato negli appunti",
+    copySessionId: "Copia ID sessione Happier",
     failedToCopySessionId: "Impossibile copiare l'ID sessione Happier",
     happySessionId: "ID sessione Happier",
     claudeCodeSessionId: "ID sessione Claude Code",

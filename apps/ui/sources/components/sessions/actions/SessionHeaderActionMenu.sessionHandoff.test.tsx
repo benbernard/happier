@@ -30,6 +30,8 @@ const usePreferredServerIdForSessionMock = vi.hoisted(() => vi.fn());
 const fireAndForgetMock = vi.hoisted(() => vi.fn());
 const realStorageRef = vi.hoisted(() => ({ current: null as typeof import('@/sync/domains/state/storageStore')['storage'] | null }));
 
+vi.mock('expo-clipboard', () => ({ setStringAsync: vi.fn(async () => true) }));
+
 /**
  * `fireAndForget` is an app-wide utility, so a suite cannot assume its own work is the only
  * caller. Production tags every call; select by that tag rather than by position.
@@ -401,6 +403,23 @@ realStorageRef.current = realStorage;
 const { SessionHeaderActionMenu } = await import('./SessionHeaderActionMenu');
 
 describe('SessionHeaderActionMenu handoff', () => {
+  it('copies only the Happier session ID from the header overflow menu', async () => {
+    const Clipboard = await import('expo-clipboard');
+    const { createSessionFixture } = await import('@/dev/testkit');
+    const session = createSessionFixture({
+      id: 'happier-header-session',
+      metadata: { path: '/workspace/project', host: 'fixture-host', flavor: 'codex', codexSessionId: 'provider-native-session' },
+    });
+    const screen = await renderScreen(<SessionHeaderActionMenu sessionId={session.id} session={session} />);
+    const dropdown = screen.findByType('DropdownMenu' as React.ElementType);
+    expect(dropdown.props.items.some((item: { id: string }) => item.id === 'session.copySessionId')).toBe(true);
+    await act(async () => {
+      dropdown.props.onSelect('session.copySessionId');
+      await findFireAndForgetByTag('SessionHeaderActionMenu.copySessionId');
+    });
+    expect(Clipboard.setStringAsync).toHaveBeenLastCalledWith(session.id);
+  });
+
   it('disables stop and archive when another surface already committed an archive', async () => {
     const { storage } = await import('@/sync/domains/state/storageStore');
     const { createSessionFixture } = await import('@/dev/testkit');

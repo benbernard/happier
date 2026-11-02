@@ -78,6 +78,7 @@ import {
     resolveProviderSessionIdForDebug,
 } from '@/components/sessions/debug/sessionDebugInformation';
 import { copySessionDebugInformationToClipboard } from '@/components/sessions/debug/sessionDebugClipboard';
+import { copySessionIdToClipboard, createCopySessionIdMenuItem, SESSION_COPY_ID_MENU_ITEM_ID } from '@/components/sessions/actions/sessionIdClipboard';
 import { Icon } from '@/components/ui/icons/Icon';
 import { Modal } from '@/modal';
 import {
@@ -888,6 +889,9 @@ const SessionItemContent = React.memo(
         ]);
         const leadingMenuItems = React.useMemo(() => {
             const items: DropdownMenuItem[] = [];
+            if (!draft) {
+                items.push(createCopySessionIdMenuItem(rowActionIconColor));
+            }
             if (draft && onDeleteDraft) {
                 items.push({
                     id: SESSION_DELETE_DRAFT_MENU_ITEM_ID,
@@ -909,6 +913,12 @@ const SessionItemContent = React.memo(
             return items;
         }, [devModeEnabled, draft, onDeleteDraft, rowActionIconColor, showForkAction]);
         const handleSelectLeadingMenuItem = React.useCallback(async (itemId: string) => {
+            if (itemId === SESSION_COPY_ID_MENU_ITEM_ID) {
+                if (await copySessionIdToClipboard(resolvedSession.id)) {
+                    copyFeedback.markCopied(resolvedSession.id);
+                }
+                return;
+            }
             if (itemId === SESSION_DELETE_DRAFT_MENU_ITEM_ID) {
                 await confirmDeleteDraft();
                 return;

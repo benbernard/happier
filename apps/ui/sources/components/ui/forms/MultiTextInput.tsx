@@ -224,6 +224,7 @@ interface MultiTextInputProps {
     placeholder?: string;
     testID?: string;
     maxHeight?: number;
+    minHeight?: number;
     autoFocus?: boolean;
     editable?: boolean;
     paddingTop?: number;
@@ -512,7 +513,7 @@ export const MultiTextInput = React.forwardRef<MultiTextInputHandle, MultiTextIn
                     paddingRight: props.paddingRight,
                     ...Typography.default(),
                     ...props.textStyle,
-                    minHeight: resolvedInputMinHeight,
+                    minHeight: Math.min(normalizedMaxHeight, Math.max(resolvedInputMinHeight, props.minHeight ?? 0)),
                     maxHeight: normalizedMaxHeight,
                 }}
                 placeholder={placeholder}

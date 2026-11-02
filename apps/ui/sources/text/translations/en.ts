@@ -6265,6 +6265,7 @@ export const en = {
         locationLabel: 'Location',
         checkoutLabel: 'Checkout',
         happySessionIdCopied: 'Happier Session ID copied to clipboard',
+        copySessionId: "Copy Happier session ID",
         failedToCopySessionId: 'Failed to copy Happier Session ID',
         happySessionId: 'Happier Session ID',
         claudeCodeSessionId: 'Claude Code Session ID',

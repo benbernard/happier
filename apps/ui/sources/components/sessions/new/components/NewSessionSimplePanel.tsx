@@ -203,7 +203,7 @@ const NewSessionFloatingComposerCapsuleRow = React.memo(
 );
 
 export const NewSessionSimplePanel = React.memo(function NewSessionSimplePanel(props: NewSessionSimplePanelProps): React.ReactElement {
-    const { width: windowWidth } = useWindowDimensions();
+    const { width: windowWidth, height: windowHeight } = useWindowDimensions();
     const shouldBottomAnchor =
         props.shouldBottomAnchor ?? (Platform.OS !== 'web' || isMobileLayoutWidth(windowWidth));
     const minimumTopGap = shouldBottomAnchor ? Math.min(props.newSessionTopPadding, SIMPLE_NEW_SESSION_MIN_TOP_GAP) : 0;
@@ -369,6 +369,14 @@ export const NewSessionSimplePanel = React.memo(function NewSessionSimplePanel(p
                 : props.safeAreaBottom}
             style={[
                 props.containerStyle,
+                // A content-sized web modal otherwise measures the small draft as its own
+                // height budget. Reserve the writing space before measuring the input.
+                Platform.OS === 'web' ? {
+                    height: Math.max(0, Math.min(windowHeight * 0.8, windowHeight - 96) - props.headerHeight),
+                    flexBasis: 'auto' as const,
+                    flexGrow: 0,
+                    flexShrink: 0,
+                } : null,
                 ...(shouldBottomAnchor
                     ? [
                         {
@@ -516,6 +524,7 @@ function NewSessionSimplePanelComposer({
                         autocompleteSuggestions={props.emptyAutocompleteSuggestions}
                         extraActionChips={attachmentsController.extraActionChips}
                         inputMaxHeight={props.sessionPromptInputMaxHeight}
+                        minHeight={typeof maxPanelHeight === 'number' ? maxPanelHeight * 0.7 : undefined}
                         maxPanelHeight={maxPanelHeight}
                         panelMaxHeightMode="host-constrained"
                         submitAccessibilityLabel={props.submitAccessibilityLabel}

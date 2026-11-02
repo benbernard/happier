@@ -994,7 +994,8 @@ const stylesheet = StyleSheet.create((theme, runtime) => ({
         paddingHorizontal: 10,
         paddingVertical: 6,
         justifyContent: 'center',
-        height: 32,
+        minHeight: 48,
+        maxWidth: '100%',
         gap: 6,
         ...(Platform.OS === 'web' ? {} : { marginRight: 6, marginBottom: NATIVE_ACTION_CHIP_GAP_Y }),
     },
@@ -2690,6 +2691,7 @@ export const AgentInput = React.memo(React.forwardRef<MultiTextInputHandle, Agen
         onPermissionPress: handlePermissionPress,
         hasActionMenuPopoverSections,
         actionMenuAnchorRef,
+        actionMenuExpanded: showActionMenu,
         onActionMenuPress: handleActionMenuPress,
         actionBarIsCollapsed,
         sessionModeChipControl,
@@ -2896,7 +2898,7 @@ export const AgentInput = React.memo(React.forwardRef<MultiTextInputHandle, Agen
             ref={composerAnchorRef}
             collapsable={false}
             testID="agent-input-composer-input-container"
-            style={[styles.inputContainer, props.minHeight ? { minHeight: props.minHeight } : undefined]}
+            style={styles.inputContainer}
             onLayout={(event) => {
                 updateNullableLayoutHeight(setInputContainerHeightPx, event.nativeEvent.layout.height);
             }}
@@ -2921,6 +2923,7 @@ export const AgentInput = React.memo(React.forwardRef<MultiTextInputHandle, Agen
                 submitBehavior={submitBehavior}
                 onSubmitEditing={handleSubmitEditing}
                 maxHeight={resolvedInputMaxHeight}
+                minHeight={props.minHeight}
                 editable={!props.disabled}
                 onFilesPasted={props.onAttachmentsAdded}
                 onContentHeightChange={handleInputContentHeightChange}

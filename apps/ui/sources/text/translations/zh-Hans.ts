@@ -6407,6 +6407,7 @@ export const zhHans: TranslationStructure = {
     locationLabel: "位置",
     checkoutLabel: "检出",
     happySessionIdCopied: "Happier 会话 ID 已复制到剪贴板",
+    copySessionId: "复制 Happier 会话 ID",
     failedToCopySessionId: "复制 Happier 会话 ID 失败",
     happySessionId: "Happier 会话 ID",
     claudeCodeSessionId: "Claude Code 会话 ID",

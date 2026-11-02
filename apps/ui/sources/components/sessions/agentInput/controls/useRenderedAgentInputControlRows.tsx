@@ -38,6 +38,7 @@ export function useRenderedAgentInputControlRows(params: Readonly<{
     permissionChipLabel: string | null;
     onPermissionPress: () => void;
     hasActionMenuPopoverSections: boolean;
+    actionMenuExpanded?: boolean;
     actionMenuAnchorRef: React.RefObject<View | null>;
     onActionMenuPress: () => void;
     actionBarIsCollapsed: boolean;
@@ -118,6 +119,7 @@ export function useRenderedAgentInputControlRows(params: Readonly<{
             permissionChipLabel: params.permissionChipLabel,
             onPermissionPress: params.onPermissionPress,
             hasActionMenuPopoverSections: params.hasActionMenuPopoverSections,
+            actionMenuExpanded: params.actionMenuExpanded,
             actionMenuAnchorRef: params.actionMenuAnchorRef,
             onActionMenuPress: params.onActionMenuPress,
             actionBarIsCollapsed: params.actionBarIsCollapsed,
@@ -190,6 +192,7 @@ export function useRenderedAgentInputControlRows(params: Readonly<{
         params.actionButtonPressedStyle,
         params.actionButtonStyle,
         params.actionMenuAnchorRef,
+        params.actionMenuExpanded,
         params.agentId,
         params.agentChipAnchorRef,
         params.agentLabel,

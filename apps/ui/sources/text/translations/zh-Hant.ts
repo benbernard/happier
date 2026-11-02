@@ -5627,6 +5627,7 @@ const zhHantOverrides: DeepPartial<TranslationStructure> = {
         locationLabel: '位置',
         checkoutLabel: '簽出',
         happySessionIdCopied: 'Happier 工作階段 ID 已複製到剪貼簿',
+        copySessionId: "複製 Happier 工作階段 ID",
         failedToCopySessionId: '複製 Happier 工作階段 ID 失敗',
         happySessionId: 'Happier 工作階段 ID',
         claudeCodeSessionId: 'Claude Code 工作階段 ID',

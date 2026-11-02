@@ -6249,6 +6249,7 @@ deps: {
         locationLabel: 'Ubicació',
         checkoutLabel: 'Extracció',
         happySessionIdCopied: 'ID de la sessió de Happier copiat al porta-retalls',
+        copySessionId: "Copia l’ID de la sessió de Happier",
         failedToCopySessionId: 'Ha fallat copiar l\'ID de la sessió de Happier',
         happySessionId: 'ID de la sessió de Happier',
         claudeCodeSessionId: 'ID de la sessió de Claude Code',

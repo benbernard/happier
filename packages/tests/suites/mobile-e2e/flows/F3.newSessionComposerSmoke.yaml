@@ -21,7 +21,7 @@ appId: ${HAPPIER_E2E_MOBILE_APP_ID}
 - assertVisible:
     id: agent-input-permission-chip
 - assertVisible:
-    id: agent-input-session-mode-chip
+    id: agent-input-action-menu-button
 
 - tapOn:
     id: new-session-composer-input
