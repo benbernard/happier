@@ -19,7 +19,10 @@ export function AgentInputActionMenuPopoverContent(props: AgentInputActionMenuPo
         <View testID="agent-input-action-menu-overlay">
             <ActionListSection
                 title={t('agentInput.actionMenu.title')}
-                actions={props.actionMenuActions}
+                actions={props.actionMenuActions.map((action) => ({
+                    ...action,
+                    testID: action.testID ?? `agent-input-action-menu-item:${action.id}`,
+                }))}
             />
         </View>
     );

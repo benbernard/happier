@@ -6220,6 +6220,7 @@ export const fr: TranslationStructure = {
         locationLabel: 'Emplacement',
         checkoutLabel: 'Checkout',
         happySessionIdCopied: 'ID de session Happier copié dans le presse-papiers',
+        copySessionId: "Copier l’ID de session Happier",
         failedToCopySessionId: 'Échec de la copie de l’ID de session Happier',
         happySessionId: 'ID de session Happier',
         claudeCodeSessionId: 'ID de session Claude Code',

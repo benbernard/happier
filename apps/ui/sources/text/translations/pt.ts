@@ -6728,6 +6728,7 @@ export const pt: TranslationStructure = {
     checkoutLabel: "Check-out",
     happySessionIdCopied:
       "ID da sessão Happier copiado para a área de transferência",
+    copySessionId: "Copiar ID da sessão Happier",
     failedToCopySessionId: "Falha ao copiar ID da sessão Happier",
     happySessionId: "ID da sessão Happier",
     claudeCodeSessionId: "ID da sessão Claude Code",

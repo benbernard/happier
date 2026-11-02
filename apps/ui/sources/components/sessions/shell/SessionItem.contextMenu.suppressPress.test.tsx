@@ -218,6 +218,37 @@ describe('SessionItem context menu press suppression', () => {
         vi.useRealTimers();
     });
 
+    it('copies the raw Happier session ID from the Android long-press menu without developer mode', async () => {
+        platformOs = 'android';
+        localDevModeEnabled = false;
+        const Clipboard = await import('expo-clipboard');
+        vi.mocked(Clipboard.setStringAsync).mockResolvedValueOnce(true);
+        const session = createSessionFixture({
+            id: 'happier-row-session',
+            metadata: { path: '/workspace/project', host: 'fixture-host', flavor: 'codex', codexSessionId: 'provider-native-session' },
+        });
+        const screen = await renderScreen(
+            <SessionItem
+                session={session}
+                serverId="server_a"
+                selected={false}
+                isFirst={true}
+                isLast={true}
+                isSingle={true}
+                variant="default"
+                compact={false}
+                nativeContextMenuOpen={true}
+                onNativeContextMenuOpenChange={() => {}}
+            />,
+        );
+        const menu = screen.findByType('DropdownMenu' as React.ElementType);
+        expect(menu.props.items.some((item: { id: string }) => item.id === 'session.copySessionId')).toBe(true);
+        await act(async () => {
+            await menu.props.onSelect('session.copySessionId');
+        });
+        expect(Clipboard.setStringAsync).toHaveBeenLastCalledWith(session.id);
+    });
+
     it('offers fork in the session row dropdown without a subtitle and opens the shared fork flow', async () => {
         platformOs = 'web';
         const session = createSessionFixture({

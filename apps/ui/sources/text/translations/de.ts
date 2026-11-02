@@ -6233,6 +6233,7 @@ export const de: TranslationStructure = {
         locationLabel: 'Ort',
         checkoutLabel: 'Checkout',
         happySessionIdCopied: 'Happier-Session-ID in die Zwischenablage kopiert',
+        copySessionId: "Happier-Session-ID kopieren",
         failedToCopySessionId: 'Die Happier-Session-ID ließ sich nicht kopieren',
         happySessionId: 'Happier-Session-ID',
         claudeCodeSessionId: 'Claude-Code-Session-ID',

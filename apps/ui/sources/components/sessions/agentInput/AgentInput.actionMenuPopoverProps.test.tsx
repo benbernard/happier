@@ -22,7 +22,7 @@ vi.mock('@/components/ui/layout/layout', () => ({
     layout: { maxWidth: 800, headerMaxWidth: 800 },
 }));
 
-const storageSettings: Settings = {
+let storageSettings: Settings = {
     ...settingsDefaults,
     profiles: [],
     agentInputEnterToSend: true,
@@ -72,7 +72,7 @@ installAgentInputCommonModuleMocks({
         return createStorageModuleMock({
             importOriginal,
             overrides: {
-                useSetting: createUseSettingMock({ values: storageSettings }),
+                useSetting: createUseSettingMock({ fallback: (key) => storageSettings[key] }),
                 useSettings: () => storageSettings,
                 useSessionMessages: () => ({ messages: [], isLoaded: true }),
                 useSessionTranscriptIds: () => ({ ids: [], isLoaded: true, hasRetainedContent: false }),
@@ -315,6 +315,7 @@ vi.mock('./components/AgentInputSelectionListPopover', () => ({
 describe('AgentInput (action menu popover props)', () => {
     beforeEach(() => {
         activeSuggestionsState.value = [];
+        storageSettings = { ...storageSettings, agentInputActionBarLayout: 'collapsed' };
     });
 
     it('anchors autocomplete suggestions to the composer input container', async () => {
@@ -466,10 +467,12 @@ describe('AgentInput (action menu popover props)', () => {
                 />);
 
         const settingsButton = screen.findByTestId('agent-input-action-menu-button');
+        expect(settingsButton?.props.accessibilityState?.expanded).toBe(false);
         expect(settingsButton).toBeTruthy();
         if (!settingsButton) return;
 
         await screen.pressByTestIdAsync('agent-input-action-menu-button');
+        expect(screen.findByTestId('agent-input-action-menu-button')?.props.accessibilityState?.expanded).toBe(true);
 
         const deliveryAction = getCapturedActionMenuActions().find(
             (action: { id?: string }) => action.id === 'delivery',
@@ -783,6 +786,7 @@ describe('AgentInput (action menu popover props)', () => {
     });
 
     it('toggles a visible extra-chip content popover closed when the chip is pressed twice', async () => {
+        storageSettings = { ...storageSettings, agentInputActionBarLayout: 'wrap' };
         captured.last = null;
         capturedActionMenuContent.last = null;
         const { AgentInput } = await import('./AgentInput');
@@ -862,8 +866,8 @@ describe('AgentInput (action menu popover props)', () => {
         const machinePressable = screen.findByTestId('agent-input-machine-chip');
 
         expect(settingsButton).toBeTruthy();
-        expect(machinePressable).toBeTruthy();
-        if (!settingsButton || !machinePressable) {
+        expect(machinePressable).toBeNull();
+        if (!settingsButton) {
             return;
         }
 
@@ -885,7 +889,7 @@ describe('AgentInput (action menu popover props)', () => {
         }) | null;
 
         expect(contentPopoverProps?.open).toBe(true);
-        expect(contentPopoverProps?.anchorRef).toStrictEqual(machinePressable.props.ref);
+        expect(contentPopoverProps?.anchorRef).toStrictEqual(settingsButton.props.ref);
         expect(contentPopoverProps?.maxHeightCap).toBeGreaterThan(0);
         expect(contentPopoverProps?.maxWidthCap).toBeGreaterThan(0);
     });
@@ -979,6 +983,7 @@ describe('AgentInput (action menu popover props)', () => {
     });
 
     it('routes the checkout/worktree chip through the SelectionList popover anchored to the chip', async () => {
+        storageSettings = { ...storageSettings, agentInputActionBarLayout: 'wrap' };
         captured.last = null;
         capturedActionMenuContent.last = null;
         capturedChipPickerPopover.last = null;

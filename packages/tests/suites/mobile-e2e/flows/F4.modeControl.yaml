@@ -17,12 +17,15 @@ appId: ${HAPPIER_E2E_MOBILE_APP_ID}
     file: _shared/gotoNewSessionComposer.yaml
 
 - assertVisible:
-    id: agent-input-session-mode-chip
+    id: agent-input-action-menu-button
 - tapOn:
-    id: agent-input-session-mode-chip
-
+    id: agent-input-action-menu-button
 - assertVisible:
-    id: 'agent-input-session-mode-chip-label:plan'
+    id: 'agent-input-action-menu-item:mode'
+- tapOn:
+    id: 'agent-input-action-menu-item:mode'
+- assertNotVisible:
+    id: agent-input-action-menu-overlay
 
 # Dismiss overlay.
 - tapOn:

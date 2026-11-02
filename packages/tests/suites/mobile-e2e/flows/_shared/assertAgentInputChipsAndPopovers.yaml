@@ -32,10 +32,14 @@ appId: ${HAPPIER_E2E_MOBILE_APP_ID}
 - assertNotVisible:
     id: agent-input-content-popover
 
-# Session mode chip should cycle directly in the default Claude new-session flow.
+# Session mode stays available through the overflow menu.
 - assertVisible:
-    id: agent-input-session-mode-chip
+    id: agent-input-action-menu-button
 - tapOn:
-    id: agent-input-session-mode-chip
+    id: agent-input-action-menu-button
 - assertVisible:
-    id: 'agent-input-session-mode-chip-label:plan'
+    id: 'agent-input-action-menu-item:mode'
+- tapOn:
+    id: 'agent-input-action-menu-item:mode'
+- assertNotVisible:
+    id: agent-input-action-menu-overlay

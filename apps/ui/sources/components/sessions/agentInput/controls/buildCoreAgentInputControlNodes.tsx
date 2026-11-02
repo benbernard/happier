@@ -30,6 +30,7 @@ export function buildCoreAgentInputControlNodes(params: Readonly<{
     permissionChipLabel: string | null;
     onPermissionPress: () => void;
     hasActionMenuPopoverSections: boolean;
+    actionMenuExpanded?: boolean;
     actionMenuAnchorRef: React.RefObject<View | null>;
     onActionMenuPress: () => void;
     actionBarIsCollapsed: boolean;
@@ -96,6 +97,7 @@ export function buildCoreAgentInputControlNodes(params: Readonly<{
 
     const actionMenuChip = params.hasActionMenuPopoverSections ? createActionMenuTriggerChip({
         anchorRef: params.actionMenuAnchorRef,
+        expanded: params.actionMenuExpanded,
         tint: params.tint,
         showLabel: params.showChipLabels,
         chipStyle: params.chipStyle,

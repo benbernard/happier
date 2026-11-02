@@ -35,11 +35,12 @@ export function createAgentSelectionActionChip(params: Readonly<{
             ref={params.anchorRef}
             key="agent"
             testID={testID}
+            accessibilityRole="button"
+            accessibilityLabel={params.label}
             onPress={params.onPress}
             onHoverIn={params.onIntent}
             onPressIn={params.onIntent}
             onFocus={params.onIntent}
-            hitSlop={{ top: 5, bottom: 10, left: 0, right: 0 }}
             style={(state) => params.chipStyle(state.pressed)}
         >
             <View style={AGENT_CHIP_LOGO_SLOT_STYLE}>
@@ -56,7 +57,7 @@ export function createAgentSelectionActionChip(params: Readonly<{
                 )}
             </View>
             {params.showLabel ? (
-                <Text style={params.textStyle}>{params.label}</Text>
+                <Text numberOfLines={1} style={[params.textStyle, { flexShrink: 1 }]}>{params.label}</Text>
             ) : null}
         </Pressable>
     );

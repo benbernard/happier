@@ -148,7 +148,7 @@ describe('AgentInput (action bar auto layout)', () => {
         expect(keyboardMockState.callCount).toBe(0);
     });
 
-    it('uses the scrollable action bar layout in auto mode on sub-tablet widths', async () => {
+    it('defaults to a settings menu without machine and path chips on sub-tablet widths', async () => {
         storageSettings = { ...storageSettings, agentInputChipDensity: 'labels' };
         vi.resetModules();
         const { AgentInput } = await import('./AgentInput');
@@ -172,8 +172,10 @@ describe('AgentInput (action bar auto layout)', () => {
         const scrollViews = screen.tree.root.findAll((node: any) => (
             node?.type === 'ScrollView' && node?.props?.horizontal === true
         ));
-        expect(scrollViews.length).toBeGreaterThan(0);
-        expect(scrollViews[0]?.props?.scrollEnabled).toBe(true);
+        expect(scrollViews).toHaveLength(0);
+        expect(screen.findByTestId('agent-input-action-menu-button')).not.toBeNull();
+        expect(screen.findByTestId('agent-input-machine-chip')).toBeNull();
+        expect(screen.findByTestId('agent-input-path-chip')).toBeNull();
     });
 
     it('does not apply the host panel max height on web so the composer never re-constrains from undefined to measured on switch', async () => {
@@ -643,7 +645,8 @@ describe('AgentInput (action bar auto layout)', () => {
         expect(findExpansionToggleButtons()).toHaveLength(0);
     });
 
-    it('keeps mobile action controls in two visible scrollable chip rows without the keyboard', async () => {
+    it('preserves an explicit preference for two scrollable control rows', async () => {
+        storageSettings = { ...storageSettings, agentInputActionBarLayout: 'scroll' };
         keyboardMockState.height = 0;
         vi.resetModules();
         const { AgentInput } = await import('./AgentInput');
@@ -684,7 +687,7 @@ describe('AgentInput (action bar auto layout)', () => {
     });
 
     it('keeps the path chip label visible even when chip density is icons', async () => {
-        storageSettings = { ...storageSettings, agentInputChipDensity: 'icons' };
+        storageSettings = { ...storageSettings, agentInputChipDensity: 'icons', agentInputActionBarLayout: 'scroll' };
         vi.resetModules();
         const { AgentInput } = await import('./AgentInput');
 

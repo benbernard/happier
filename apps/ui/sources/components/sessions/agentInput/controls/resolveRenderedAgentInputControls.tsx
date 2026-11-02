@@ -36,7 +36,7 @@ export function resolveRenderedAgentInputControls(params: Readonly<{
     );
 
     const chips = params.layout === 'collapsed'
-        ? resolveControlNodes(controlLines.collapsed).filter(Boolean)
+        ? resolveControlNodes(['engine', 'permission', 'actionMenu']).filter(Boolean)
         : [
             ...resolveControlNodes(controlLines.primary),
             ...params.extraChips,

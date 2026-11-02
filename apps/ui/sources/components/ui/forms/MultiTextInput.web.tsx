@@ -69,6 +69,7 @@ interface MultiTextInputProps {
     onChangeText: (text: string) => void;
     placeholder?: string;
     maxHeight?: number;
+    minHeight?: number;
     editable?: boolean;
     paddingTop?: number;
     paddingBottom?: number;
@@ -681,6 +682,7 @@ export const MultiTextInput = React.forwardRef<MultiTextInputHandle, MultiTextIn
                 style={{
                     ...textareaStyle,
                     maxHeight: normalizedMaxHeight,
+                    minHeight: Math.min(normalizedMaxHeight, props.minHeight ?? 0),
                     height: renderedTextareaHeight,
                     overflowY: 'auto',
                     overscrollBehavior: 'contain',

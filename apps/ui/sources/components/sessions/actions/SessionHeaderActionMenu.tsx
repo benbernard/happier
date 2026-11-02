@@ -64,6 +64,8 @@ import { getSessionName } from '@/utils/sessions/sessionUtils';
 import { resolveSessionHeaderActionTargetPx, SESSION_HEADER_ICON_SIZE_PX } from '@/components/sessions/actions/sessionHeaderIconMetrics';
 import { Icon } from '@/components/ui/icons/Icon';
 import { emitSessionResumeRequest } from '@/components/sessions/model/sessionResumeRequests';
+import { useTemporaryCopyFeedback } from '@/components/ui/copy/useTemporaryCopyFeedback';
+import { copySessionIdToClipboard, createCopySessionIdMenuItem, SESSION_COPY_ID_MENU_ITEM_ID } from './sessionIdClipboard';
 
 type SessionHeaderActionMenuProps = Readonly<{
   sessionId: string;
@@ -192,6 +194,7 @@ function SessionHeaderActionMenuInner(props: SessionHeaderActionMenuProps) {
     buildSessionHeaderReadStateSignature(state, props.sessionId),
   );
   const [open, setOpen] = React.useState(false);
+  const copyFeedback = useTemporaryCopyFeedback();
   const session = React.useMemo(
     () => open ? readCurrentSessionForOpenMenu(props.sessionId, props.session) : props.session,
     [open, props.session, props.sessionId],
@@ -275,7 +278,7 @@ function SessionHeaderActionMenuInner(props: SessionHeaderActionMenuProps) {
         subtitle: spec.description,
       }));
 
-    const out: DropdownMenuItem[] = [];
+    const out: DropdownMenuItem[] = [createCopySessionIdMenuItem(theme.colors.chrome.header.foreground)];
 
     if (Array.isArray(props.extraItems) && props.extraItems.length > 0) {
       out.push(...props.extraItems);
@@ -332,6 +335,14 @@ function SessionHeaderActionMenuInner(props: SessionHeaderActionMenuProps) {
       items={actions}
       onSelect={(actionId) => {
         setOpen(false);
+        if (actionId === SESSION_COPY_ID_MENU_ITEM_ID) {
+          fireAndForget((async () => {
+            if (await copySessionIdToClipboard(props.sessionId)) {
+              copyFeedback.markCopied(props.sessionId);
+            }
+          })(), { tag: 'SessionHeaderActionMenu.copySessionId' });
+          return;
+        }
         if (props.onSelectExtraItem?.(actionId) === true) return;
         if (actionId === 'header.openRuns') {
           router.push((`/session/${props.sessionId}/runs`) as any);
@@ -540,7 +551,10 @@ function SessionHeaderActionMenuInner(props: SessionHeaderActionMenuProps) {
               onPress={toggle}
               testID="session-header-action-menu-trigger"
               accessibilityRole="button"
-              accessibilityLabel={t('session.actionMenu.openA11y')}
+              accessibilityLabel={copyFeedback.isCopied(props.sessionId)
+                ? t('sessionInfo.happySessionIdCopied')
+                : t('session.actionMenu.openA11y')}
+              accessibilityLiveRegion="polite"
               style={({ pressed }) => ({
                 width: resolveSessionHeaderActionTargetPx(),
                 height: resolveSessionHeaderActionTargetPx(),
@@ -550,7 +564,7 @@ function SessionHeaderActionMenuInner(props: SessionHeaderActionMenuProps) {
           })}
         >
           <View style={{ width: 32, height: 32, alignItems: 'center', justifyContent: 'center' }}>
-            <Icon name="dots-three" size={SESSION_HEADER_ICON_SIZE_PX} color={theme.colors.chrome.header.foreground} />
+            <Icon name={copyFeedback.isCopied(props.sessionId) ? 'check' : 'dots-three'} size={SESSION_HEADER_ICON_SIZE_PX} color={theme.colors.chrome.header.foreground} />
           </View>
         </Pressable>
       )}

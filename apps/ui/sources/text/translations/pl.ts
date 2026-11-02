@@ -6627,6 +6627,7 @@ export const pl: TranslationStructure = {
     locationLabel: "Lokalizacja",
     checkoutLabel: "Wybrany checkout",
     happySessionIdCopied: "ID sesji Happier skopiowane do schowka",
+    copySessionId: "Kopiuj ID sesji Happier",
     failedToCopySessionId: "Nie udało się skopiować ID sesji Happier",
     happySessionId: "ID sesji Happier",
     claudeCodeSessionId: "ID sesji Claude Code",

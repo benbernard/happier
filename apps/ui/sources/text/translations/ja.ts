@@ -6875,6 +6875,7 @@ localTailscale: {
     checkoutLabel: "チェックアウト",
     happySessionIdCopied:
       "Happier セッション ID をクリップボードにコピーしました",
+    copySessionId: "Happier セッション ID をコピー",
     failedToCopySessionId: "Happier セッション ID のコピーに失敗しました",
     happySessionId: "Happier セッション ID",
     claudeCodeSessionId: "Claude Code セッション ID",

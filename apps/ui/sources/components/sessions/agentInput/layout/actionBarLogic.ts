@@ -58,6 +58,5 @@ export function resolveAgentInputActionBarLayout(params: Readonly<{
         return params.configuredLayout;
     }
 
-    if (params.platform === 'web') return 'scroll';
-    return params.isMobileLayout ? 'scroll' : 'wrap';
+    return 'collapsed';
 }

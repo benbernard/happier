@@ -14,12 +14,14 @@ describe('agentInput/actionBarLogic', () => {
         expect(shouldShowSecondaryControlRow('collapsed', true)).toBe(false);
     });
 
-    it('resolves auto layout to scroll on web so controls stay in two compact rows', () => {
-        expect(resolveAgentInputActionBarLayout({
-            configuredLayout: 'auto',
-            platform: 'web',
-            isMobileLayout: false,
-        })).toBe('scroll');
+    it('defaults to overflow controls on phones, foldables and desktop', () => {
+        for (const platform of ['android', 'ios', 'web']) {
+            for (const isMobileLayout of [true, false]) {
+                expect(resolveAgentInputActionBarLayout({
+                    configuredLayout: 'auto', platform, isMobileLayout,
+                })).toBe('collapsed');
+            }
+        }
     });
 
     it('preserves explicit action bar layout settings', () => {
