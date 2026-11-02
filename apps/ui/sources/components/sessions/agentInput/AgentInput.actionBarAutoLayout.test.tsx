@@ -1,10 +1,11 @@
 import React from 'react';
+import { Text } from 'react-native';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { renderScreen } from '@/dev/testkit';
 import { installAgentInputCommonModuleMocks } from './agentInputTestHelpers';
 import { settingsDefaults, type Settings } from '@/sync/domains/settings/settings';
-import { createUseSettingMock } from '@/dev/testkit/mocks/storage';
+import { createUseSettingMock, createUseLocalSettingMock } from '@/dev/testkit/mocks/storage';
 
 vi.mock('expo-haptics', () => ({
     impactAsync: vi.fn(async () => {}),
@@ -19,7 +20,8 @@ const keyboardMockState = vi.hoisted(() => ({
 }));
 
 const layoutMockState = vi.hoisted(() => ({
-    platform: 'ios' as 'ios' | 'web',
+    platform: 'ios' as 'ios' | 'android' | 'web',
+    uiFontScale: 1,
     width: 700,
     height: 800,
 }));
@@ -52,6 +54,12 @@ let storageSettings: Settings = {
 };
 
 installAgentInputCommonModuleMocks({
+    storeHooks: async (importOriginal) => ({
+        ...await importOriginal<typeof import('@/sync/store/hooks')>(),
+        useLocalSetting: createUseLocalSettingMock({ values: {
+            get uiFontScale() { return layoutMockState.uiFontScale; },
+        } }),
+    }),
     reactNative: async () => {
         const { createReactNativeWebMock } = await import('@/dev/testkit/mocks/reactNative');
         return createReactNativeWebMock({
@@ -72,7 +80,7 @@ installAgentInputCommonModuleMocks({
                 },
                 select: (v: any) => v?.[layoutMockState.platform] ?? v?.default,
             },
-            useWindowDimensions: () => ({ width: layoutMockState.width, height: layoutMockState.height }),
+            useWindowDimensions: () => ({ width: layoutMockState.width, height: layoutMockState.height, scale: 1, fontScale: 1 }),
             Dimensions: {
                 get: () => ({ width: layoutMockState.width, height: layoutMockState.height, scale: 1, fontScale: 1 }),
             },
@@ -112,6 +120,7 @@ describe('AgentInput (action bar auto layout)', () => {
         keyboardMockState.callCount = 0;
         keyboardMockState.height = 0;
         layoutMockState.platform = 'ios';
+        layoutMockState.uiFontScale = 1;
         layoutMockState.width = 700;
         layoutMockState.height = 800;
         storageSettings = {
@@ -120,6 +129,44 @@ describe('AgentInput (action bar auto layout)', () => {
             agentInputChipDensity: 'labels',
         };
         multiTextInputMockState.renderCount = 0;
+    });
+
+    it.each([
+        { sessionId: 'existing-session', maxPanelHeight: 69, uiFontScale: 1, inputMaxHeight: 56 },
+        { sessionId: undefined, maxPanelHeight: 84, uiFontScale: 1, inputMaxHeight: 120 },
+        { sessionId: undefined, maxPanelHeight: 318, uiFontScale: 2, inputMaxHeight: 240 },
+    ])('scrolls the complete native composer when its $maxPanelHeight dp budget cannot fit the controls', async ({ sessionId, maxPanelHeight, uiFontScale, inputMaxHeight }) => {
+        layoutMockState.platform = 'android';
+        layoutMockState.uiFontScale = uiFontScale;
+        vi.resetModules();
+        const { AgentInput } = await import('./AgentInput');
+        const screen = await renderScreen(<AgentInput value="Retained draft" placeholder="Type" onChangeText={() => {}}
+            onSend={() => {}} autocompleteKinds={[]} autocompleteSuggestions={async () => []}
+            sessionId={sessionId} maxPanelHeight={maxPanelHeight} inputMaxHeight={inputMaxHeight} />);
+        const viewport = screen.tree.root.findAll((node) => String(node.type) === 'ScrollView'
+            && node.props.testID === 'agent-input-scroll-viewport')[0];
+        expect(viewport).toBeDefined();
+        expect(viewport.props.keyboardShouldPersistTaps).toBe('handled');
+        const input = screen.tree.root.findAll((node) => String(node.type) === 'MultiTextInput')[0];
+        expect(input.props.minHeight).toBeGreaterThanOrEqual(40);
+        expect(input.props.maxHeight).toBe(inputMaxHeight);
+        const panel = screen.tree.root.findByProps({ testID: 'agent-input-drop-zone' });
+        const panelStyle = Object.assign({}, ...(Array.isArray(panel.props.style)
+            ? panel.props.style : [panel.props.style]).filter(Boolean));
+        expect(panelStyle.maxHeight).toBeUndefined();
+    });
+
+    it('includes the existing host banner in a scrollable Android viewport at normal height', async () => {
+        layoutMockState.platform = 'android';
+        vi.resetModules();
+        const { AgentInput } = await import('./AgentInput');
+        const screen = await renderScreen(<AgentInput value="Draft" placeholder="Type" onChangeText={() => {}}
+            onSend={() => {}} autocompleteKinds={[]} autocompleteSuggestions={async () => []}
+            maxPanelHeight={360} topContent={<Text>Draft conflict</Text>} />);
+        expect(screen.getTextContent()).toContain('Draft conflict');
+        const viewport = screen.tree.root.findAll((node) => String(node.type) === 'ScrollView'
+            && node.props.testID === 'agent-input-scroll-viewport')[0];
+        expect(viewport.props.scrollEnabled).toBe(true);
     });
 
     it('does not subscribe to passive keyboard height while rendering the native composer', async () => {
