@@ -30,7 +30,7 @@ vi.mock('@/agents/catalog/catalog', () => ({
 }));
 
 describe('buildAgentInputActionMenuActions', () => {
-    it('keeps machine/path entries in collapsed menu with fallback labels when values are empty', () => {
+    it('keeps the path fallback in the menu without duplicating the visible machine control', () => {
         const actions = buildAgentInputActionMenuActions({
             actionBarIsCollapsed: true,
             hasAnyActions: true,
@@ -49,11 +49,11 @@ describe('buildAgentInputActionMenuActions', () => {
         const machine = actions.find((action) => action.id === 'machine');
         const path = actions.find((action) => action.id === 'path');
 
-        expect(machine?.label).toBe('newSession.selectMachineTitle');
+        expect(machine).toBeUndefined();
         expect(path?.label).toBe('newSession.selectPathTitle');
     });
 
-    it('keeps stop ahead of machine and path in the collapsed control menu order', () => {
+    it('keeps stop ahead of path in the collapsed control menu order', () => {
         const actions = buildAgentInputActionMenuActions({
             actionBarIsCollapsed: true,
             hasAnyActions: true,
@@ -74,14 +74,12 @@ describe('buildAgentInputActionMenuActions', () => {
         });
 
         expect(actions.map((action) => action.id)).toEqual([
-            'agent',
             'stop',
-            'machine',
             'path',
         ]);
     });
 
-    it('includes recipient and delivery extra controls in the collapsed control menu ahead of machine and path', () => {
+    it('includes recipient and delivery extra controls in the collapsed control menu ahead of path', () => {
         const opts = {
             actionBarIsCollapsed: true,
             hasAnyActions: true,
@@ -118,16 +116,14 @@ describe('buildAgentInputActionMenuActions', () => {
         const actions = buildAgentInputActionMenuActions(opts);
 
         expect(actions.map((action) => action.id)).toEqual([
-            'agent',
             'stop',
             'recipient',
             'delivery',
-            'machine',
             'path',
         ]);
     });
 
-    it('places attachments ahead of machine and path in the collapsed control menu order', () => {
+    it('places attachments ahead of path in the collapsed control menu order', () => {
         const actions = buildAgentInputActionMenuActions({
             actionBarIsCollapsed: true,
             hasAnyActions: true,
@@ -154,14 +150,11 @@ describe('buildAgentInputActionMenuActions', () => {
         });
 
         expect(actions.map((action) => action.id)).toEqual([
-            'agent',
-            'attachments',
-            'machine',
             'path',
         ]);
     });
 
-    it('places files ahead of machine and path in the collapsed control menu order', () => {
+    it('places files ahead of path in the collapsed control menu order', () => {
         const actions = buildAgentInputActionMenuActions({
             actionBarIsCollapsed: true,
             hasAnyActions: true,
@@ -182,14 +175,12 @@ describe('buildAgentInputActionMenuActions', () => {
         });
 
         expect(actions.map((action) => action.id)).toEqual([
-            'agent',
             'files',
-            'machine',
             'path',
         ]);
     });
 
-    it('places linked files ahead of machine and path in the collapsed control menu order', () => {
+    it('places linked files ahead of path in the collapsed control menu order', () => {
         const actions = buildAgentInputActionMenuActions({
             actionBarIsCollapsed: true,
             hasAnyActions: true,
@@ -216,14 +207,12 @@ describe('buildAgentInputActionMenuActions', () => {
         });
 
         expect(actions.map((action) => action.id)).toEqual([
-            'agent',
             'linked-files',
-            'machine',
             'path',
         ]);
     });
 
-    it('places review comments ahead of machine and path in the collapsed control menu order', () => {
+    it('places review comments ahead of path in the collapsed control menu order', () => {
         const actions = buildAgentInputActionMenuActions({
             actionBarIsCollapsed: true,
             hasAnyActions: true,
@@ -250,14 +239,12 @@ describe('buildAgentInputActionMenuActions', () => {
         });
 
         expect(actions.map((action) => action.id)).toEqual([
-            'agent',
             'review-comments',
-            'machine',
             'path',
         ]);
     });
 
-    it('places connected services ahead of machine and path in the collapsed control menu order', () => {
+    it('places connected services ahead of path in the collapsed control menu order', () => {
         const actions = buildAgentInputActionMenuActions({
             actionBarIsCollapsed: true,
             hasAnyActions: true,
@@ -284,14 +271,12 @@ describe('buildAgentInputActionMenuActions', () => {
         });
 
         expect(actions.map((action) => action.id)).toEqual([
-            'agent',
             'connected-services',
-            'machine',
             'path',
         ]);
     });
 
-    it('places storage ahead of machine and path in the collapsed control menu order', () => {
+    it('places storage ahead of path in the collapsed control menu order', () => {
         const actions = buildAgentInputActionMenuActions({
             actionBarIsCollapsed: true,
             hasAnyActions: true,
@@ -318,14 +303,12 @@ describe('buildAgentInputActionMenuActions', () => {
         });
 
         expect(actions.map((action) => action.id)).toEqual([
-            'agent',
             'storage',
-            'machine',
             'path',
         ]);
     });
 
-    it('places grouped shortcut actions ahead of machine and path in the collapsed control menu order', () => {
+    it('places grouped shortcut actions ahead of path in the collapsed control menu order', () => {
         const actions = buildAgentInputActionMenuActions({
             actionBarIsCollapsed: true,
             hasAnyActions: true,
@@ -360,15 +343,13 @@ describe('buildAgentInputActionMenuActions', () => {
         });
 
         expect(actions.map((action) => action.id)).toEqual([
-            'agent',
             'session-action:review.start',
             'session-action:subagents.delegate.start',
-            'machine',
             'path',
         ]);
     });
 
-    it('places mcp ahead of machine and path in the collapsed control menu order', () => {
+    it('places mcp ahead of path in the collapsed control menu order', () => {
         const actions = buildAgentInputActionMenuActions({
             actionBarIsCollapsed: true,
             hasAnyActions: true,
@@ -395,14 +376,12 @@ describe('buildAgentInputActionMenuActions', () => {
         });
 
         expect(actions.map((action) => action.id)).toEqual([
-            'agent',
             'new-session-mcp',
-            'machine',
             'path',
         ]);
     });
 
-    it('places automation ahead of machine and path in the collapsed control menu order', () => {
+    it('places automation ahead of path in the collapsed control menu order', () => {
         const actions = buildAgentInputActionMenuActions({
             actionBarIsCollapsed: true,
             hasAnyActions: true,
@@ -429,14 +408,12 @@ describe('buildAgentInputActionMenuActions', () => {
         });
 
         expect(actions.map((action) => action.id)).toEqual([
-            'agent',
             'new-session-automate',
-            'machine',
             'path',
         ]);
     });
 
-    it('places mode directly after engine in the collapsed control menu order', () => {
+    it('keeps session mode in the menu while engine stays directly visible', () => {
         const actions = buildAgentInputActionMenuActions({
             actionBarIsCollapsed: true,
             hasAnyActions: true,
@@ -455,10 +432,9 @@ describe('buildAgentInputActionMenuActions', () => {
         });
 
         expect(actions.map((action) => action.id)).toEqual([
-            'agent',
             'mode',
             'stop',
         ]);
-        expect((actions[1]?.icon as any)?.props?.name).toBe('rocket-launch');
+        expect((actions[0]?.icon as any)?.props?.name).toBe('rocket-launch');
     });
 });

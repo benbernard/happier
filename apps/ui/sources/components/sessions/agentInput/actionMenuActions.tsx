@@ -14,6 +14,8 @@ export function buildAgentInputActionMenuActions(opts: {
     profileIcon: string;
     envVarsCount?: number;
     engineLabel?: string | null;
+    permissionLabel?: string | null;
+    onPermissionClick?: () => void;
     agentType?: AgentId;
     machineName?: string | null;
     currentPath?: string | null;

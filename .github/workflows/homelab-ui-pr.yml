@@ -36,4 +36,5 @@ jobs:
             sources/components/ui/forms/MultiTextInput.test.tsx \
             sources/components/sessions/new/components/NewSessionSimplePanel.keyboardScaffold.test.tsx \
             sources/components/sessions/actions/SessionHeaderActionMenu.sessionHandoff.test.tsx \
+            sources/components/sessions/shell/SessionView.infoNavigation.test.tsx \
             sources/components/sessions/shell/SessionItem.contextMenu.suppressPress.test.tsx --maxWorkers=2

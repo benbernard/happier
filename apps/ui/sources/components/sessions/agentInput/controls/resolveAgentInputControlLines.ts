@@ -3,6 +3,8 @@ import type { AgentInputActionBarLayout } from '@/components/sessions/agentInput
 import { AGENT_INPUT_CONTROL_REGISTRY, findAgentInputControlDescriptor } from './agentInputControlRegistry';
 import type { AgentInputControlId, AgentInputResolvedControlLines } from './agentInputControlTypes';
 
+const COLLAPSED_PRIMARY_CONTROLS: readonly AgentInputControlId[] = ['engine', 'machine', 'attachments', 'actionMenu'];
+
 function sortControlIdsInRegistryOrder(controlIds: readonly AgentInputControlId[]): AgentInputControlId[] {
     const requested = new Set(controlIds);
     return AGENT_INPUT_CONTROL_REGISTRY
@@ -19,9 +21,9 @@ export function resolveAgentInputControlLines(params: Readonly<{
     if (params.layout === 'collapsed') {
         return {
             layout: params.layout,
-            primary: [],
+            primary: COLLAPSED_PRIMARY_CONTROLS.filter((controlId) => orderedControlIds.includes(controlId)),
             secondary: [],
-            collapsed: orderedControlIds,
+            collapsed: orderedControlIds.filter((controlId) => !COLLAPSED_PRIMARY_CONTROLS.includes(controlId)),
         };
     }
 

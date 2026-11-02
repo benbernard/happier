@@ -193,6 +193,18 @@ describe('NewSessionSimplePanel keyboard scaffold integration', () => {
         standardCleanup();
     });
 
+    it('includes host content in the shared composer scroll budget', async () => {
+        const { NewSessionSimplePanel } = await import('./NewSessionSimplePanel');
+        const topContent = <React.Fragment>Draft conflict</React.Fragment>;
+        const screen = await renderScreen(<NewSessionSimplePanel {...createFloatingPanelProps()}
+            composerTopContent={topContent} />);
+        try {
+            expect(testState.agentInputProps.at(-1)?.topContent).toBe(topContent);
+        } finally {
+            act(() => { screen.tree.unmount(); });
+        }
+    });
+
     it('hands AgentInput the available panel height less the chrome this host draws in it', async () => {
         const { NewSessionSimplePanel } = await import('./NewSessionSimplePanel');
         let screen: Awaited<ReturnType<typeof renderScreen>> | undefined;

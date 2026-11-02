@@ -26,15 +26,15 @@ describe('resolveAgentInputControlLines', () => {
         expect(lines.collapsed).toEqual([]);
     });
 
-    it('moves all controls into the collapsed action menu in collapsed layout', () => {
+    it('keeps everyday controls visible and moves secondary controls into the collapsed menu', () => {
         const lines = resolveAgentInputControlLines({
             layout: 'collapsed',
-            controlIds: ['engine', 'permission', 'stop', 'files', 'reviewComments', 'machine', 'path', 'resume'],
+            controlIds: ['engine', 'permission', 'actionMenu', 'attachments', 'stop', 'files', 'reviewComments', 'machine', 'path', 'resume'],
         });
 
-        expect(lines.primary).toEqual([]);
+        expect(lines.primary).toEqual(['engine', 'machine', 'attachments', 'actionMenu']);
         expect(lines.secondary).toEqual([]);
-        expect(lines.collapsed).toEqual(['engine', 'permission', 'stop', 'files', 'reviewComments', 'machine', 'path', 'resume']);
+        expect(lines.collapsed).toEqual(['permission', 'stop', 'files', 'reviewComments', 'path', 'resume']);
     });
 
     it('keeps connected services on the primary line ahead of secondary machine/path controls', () => {

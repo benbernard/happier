@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AppPaneProvider } from '@/components/appShell/panes/AppPaneProvider';
 import { renderScreen, standardCleanup } from '@/dev/testkit';
+import { createMachineFixture } from '@/dev/testkit/fixtures/machineFixtures';
 import { createThemeFixture } from '@/dev/testkit/fixtures/themeFixtures';
 import { createExpoRouterMock } from '@/dev/testkit/mocks/router';
 import { createReactNativeWebMock } from '@/dev/testkit/mocks/reactNative';
@@ -10,6 +11,7 @@ import { createTextModuleMock } from '@/dev/testkit/mocks/text';
 import { createUnistylesMock } from '@/dev/testkit/mocks/unistyles';
 import { localSettingsDefaults, type LocalSettings } from '@/sync/domains/settings/localSettings';
 import { settingsDefaults, type Settings } from '@/sync/domains/settings/settings';
+import type { Machine } from '@/sync/domains/state/storageTypes';
 
 import { installSessionShellCommonModuleMocks } from './sessionShellTestHelpers';
 
@@ -35,6 +37,8 @@ const resolveServerIdForSessionIdFromLocalCacheSpy = vi.hoisted(() =>
 let workspaceLabelsV1: Record<string, string> = {};
 let sessionOrganizationProjection: any = null;
 let subagentSourceMessages: readonly any[] = [];
+const sessionMachineMetadata: { machineId?: string; host: string } = { machineId: 'm1', host: 'session-host' };
+const machines: Record<string, Machine> = {};
 
 installSessionShellCommonModuleMocks({
     reactNative: async () =>
@@ -83,23 +87,30 @@ installSessionShellCommonModuleMocks({
             presence: 'online',
             active: true,
             accessLevel: 'edit',
-            metadata: { machineId: 'm1', flavor: 'codex', version: '0.0.0', path: '/tmp', homeDir: '/Users/test' },
+            metadata: {
+                get machineId() { return sessionMachineMetadata.machineId; },
+                get host() { return sessionMachineMetadata.host; },
+                flavor: 'codex', version: '0.0.0', path: '/tmp', homeDir: '/Users/test',
+            },
             agentState: {},
         };
 
+        const store = createStorageStoreMock({
+            sessions: { s1: session },
+            machines,
+            settings: settingsDefaults,
+            sessionListViewDataByServerId: {
+                'server-1': [
+                    {
+                        type: 'session',
+                        session,
+                    },
+                ],
+            },
+        });
         return createStorageModuleStub({
-            storage: createStorageStoreMock({
-                sessions: { s1: session },
-                settings: settingsDefaults,
-                sessionListViewDataByServerId: {
-                    'server-1': [
-                        {
-                            type: 'session',
-                            session,
-                        },
-                    ],
-                },
-            }),
+            storage: store,
+            getStorage: () => store,
             useSession: () => session,
             useIsDataReady: () => true,
             useRealtimeStatus: () => ({ current: { status: 'connected' } as any }),
@@ -125,7 +136,7 @@ installSessionShellCommonModuleMocks({
             useAutomations: () => [],
             useSessionAutomationsEnabledCount: () => 0,
             useOpenApprovalArtifactsForSession: () => [],
-            useMachine: () => null,
+            useMachine: (machineId: string) => machines[machineId] ?? null,
             useAllMachines: () => [{ id: 'm1', metadata: {} }],
         });
     },
@@ -185,14 +196,29 @@ vi.mock('@/components/sessions/transcript/ChatHeaderView', () => ({
     },
 }));
 vi.mock('@/components/sessions/transcript/AgentContentView', () => ({
-    AgentContentView: () => null,
+    AgentContentView: (props: { input?: React.ReactNode }) => React.createElement('AgentContentView', null, props.input),
 }));
 vi.mock('@/components/appShell/panes/AppPaneScopeHost', () => ({
     AppPaneScopeHost: (props: any) => React.createElement('AppPaneScopeHost', props, props.main ?? null),
 }));
-vi.mock('@/components/sessions/agentInput', () => ({
-    AgentInput: () => null,
-}));
+// Keep the existing SessionView composer boundary while rendering the real machine control.
+// Target resolution, display naming and the navigation callback remain production logic.
+vi.mock('@/components/sessions/agentInput', async () => {
+    const { createMachineActionChip } = await import('@/components/sessions/agentInput/definitions/createMachineActionChip');
+    return {
+        AgentInput: (props: { machineName?: string | null; onMachineClick?: () => void }) => props.onMachineClick
+            ? createMachineActionChip({
+                anchorRef: React.createRef(),
+                machineName: props.machineName,
+                tint: 'machine-tint',
+                showLabel: true,
+                chipStyle: () => ({}),
+                textStyle: {},
+                onPress: props.onMachineClick,
+            })
+            : null,
+    };
+});
 vi.mock('@/components/sessions/actions/SessionHeaderActionMenu', () => ({
     SessionHeaderActionMenu: () => null,
 }));
@@ -396,6 +422,9 @@ describe('SessionView info navigation', () => {
             labelsByLabelKey: {},
         };
         subagentSourceMessages = [];
+        sessionMachineMetadata.machineId = 'm1';
+        sessionMachineMetadata.host = 'session-host';
+        for (const machineId of Object.keys(machines)) delete machines[machineId];
         resolveServerIdForSessionIdFromLocalCacheSpy.mockReset();
         resolveServerIdForSessionIdFromLocalCacheSpy.mockImplementation((sessionId: string) =>
             sessionId === 's1' ? 'server-cache' : null
@@ -409,6 +438,48 @@ describe('SessionView info navigation', () => {
 
     afterEach(() => {
         standardCleanup();
+    });
+
+    it('opens the current machine details from the composer on the session owning server', async () => {
+        machines.m1 = createMachineFixture({
+            id: 'm1',
+            metadata: { ...createMachineFixture().metadata!, displayName: 'Office Mac' },
+        });
+        const { SessionView } = await import('./SessionView');
+        const screen = await renderScreen(
+            <SessionView id="s1" routeServerId="server-2" />,
+            { wrapper: AppPaneProviderWrapper },
+        );
+
+        expect(screen.getTextContent()).toContain('Office Mac');
+        await screen.pressByTestIdAsync('agent-input-machine-chip');
+
+        expect(routerPushSpy).toHaveBeenCalledWith('/machine/m1?serverId=server-2');
+    });
+
+    it('keeps machine details available from session metadata when the machine record is absent', async () => {
+        const { SessionView } = await import('./SessionView');
+        const screen = await renderScreen(
+            <SessionView id="s1" />,
+            { wrapper: AppPaneProviderWrapper },
+        );
+
+        expect(screen.getTextContent()).toContain('session-host');
+        await screen.pressByTestIdAsync('agent-input-machine-chip');
+
+        expect(routerPushSpy).toHaveBeenCalledWith('/machine/m1?serverId=server-cache');
+    });
+
+    it('does not turn a missing session machine into a new-machine selection action', async () => {
+        delete sessionMachineMetadata.machineId;
+        sessionMachineMetadata.host = '';
+        const { SessionView } = await import('./SessionView');
+        const screen = await renderScreen(
+            <SessionView id="s1" />,
+            { wrapper: AppPaneProviderWrapper },
+        );
+
+        expect(screen.findByTestId('agent-input-machine-chip')).toBeNull();
     });
 
     it('opens session info via singular navigate using the explicit route server id for a route-owned session', async () => {

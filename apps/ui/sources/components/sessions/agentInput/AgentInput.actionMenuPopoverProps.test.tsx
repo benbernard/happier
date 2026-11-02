@@ -369,7 +369,7 @@ describe('AgentInput (action menu popover props)', () => {
         )).resolves.toEqual(expect.objectContaining({ tree: expect.anything() }));
     });
 
-    it('anchors the permission popover to the permission chip and uses the shared popover sizing', async () => {
+    it('anchors the permission picker to the visible overflow button and uses the shared popover sizing', async () => {
         capturedPermissionPicker.last = null;
         const { AgentInput } = await import('./AgentInput');
 
@@ -383,13 +383,16 @@ describe('AgentInput (action menu popover props)', () => {
                     autocompleteSuggestions={async () => []}
                 />);
 
-        const permissionPressable = screen.findByTestId('agent-input-permission-chip');
+        const permissionPressable = screen.findByTestId('agent-input-action-menu-button');
 
         expect(permissionPressable).toBeTruthy();
         if (!permissionPressable) {
             return;
         }
-        await screen.pressByTestIdAsync('agent-input-permission-chip');
+        await screen.pressByTestIdAsync('agent-input-action-menu-button');
+        const permissionAction = getCapturedActionMenuActions().find((action) => action.id === 'permission');
+        expect(permissionAction).toBeTruthy();
+        act(() => { permissionAction?.onPress?.(); });
 
         const popoverProps: CapturedPopoverProps | null = captured.last;
         expect(popoverProps?.open).toBe(true);
@@ -416,9 +419,12 @@ describe('AgentInput (action menu popover props)', () => {
                 />);
 
         const basePopoverCount = screen.findAllByType('Popover').length;
-        const permissionPressable = screen.findByTestId('agent-input-permission-chip');
+        const permissionPressable = screen.findByTestId('agent-input-action-menu-button');
 
-        await screen.pressByTestIdAsync('agent-input-permission-chip');
+        await screen.pressByTestIdAsync('agent-input-action-menu-button');
+        const permissionAction = getCapturedActionMenuActions().find((action) => action.id === 'permission');
+        expect(permissionAction).toBeTruthy();
+        act(() => { permissionAction?.onPress?.(); });
 
         expect(screen.findAllByType('Popover')).toHaveLength(basePopoverCount + 1);
         expect(typeof (capturedPermissionPicker.last as any)?.onSelect).toBe('function');
@@ -841,7 +847,7 @@ describe('AgentInput (action menu popover props)', () => {
         expect(screen.findByTestId('mcp-content')).toBeNull();
     });
 
-    it('routes collapsed machine actions through the shared content popover when a machine popover is configured', async () => {
+    it('opens the directly visible machine chip through its existing content popover', async () => {
         captured.last = null;
         capturedActionMenuContent.last = null;
         const { AgentInput } = await import('./AgentInput');
@@ -865,21 +871,9 @@ describe('AgentInput (action menu popover props)', () => {
         const settingsButton = screen.findByTestId('agent-input-action-menu-button');
         const machinePressable = screen.findByTestId('agent-input-machine-chip');
 
-        expect(settingsButton).toBeTruthy();
-        expect(machinePressable).toBeNull();
-        if (!settingsButton) {
-            return;
-        }
-
-        await screen.pressByTestIdAsync('agent-input-action-menu-button');
-
-        const actionMenuActions = getCapturedActionMenuActions();
-        const machineAction = actionMenuActions.find((action: { id?: string }) => action.id === 'machine');
-        expect(machineAction).toBeTruthy();
-
-        act(() => {
-            machineAction?.onPress?.();
-        });
+        expect(settingsButton).toBeNull();
+        expect(machinePressable).toBeTruthy();
+        await screen.pressByTestIdAsync('agent-input-machine-chip');
 
         const contentPopoverProps = captured.last as (Record<string, unknown> & {
             open?: boolean;
@@ -889,7 +883,7 @@ describe('AgentInput (action menu popover props)', () => {
         }) | null;
 
         expect(contentPopoverProps?.open).toBe(true);
-        expect(contentPopoverProps?.anchorRef).toStrictEqual(settingsButton.props.ref);
+        expect(contentPopoverProps?.anchorRef).toStrictEqual(machinePressable?.props.ref);
         expect(contentPopoverProps?.maxHeightCap).toBeGreaterThan(0);
         expect(contentPopoverProps?.maxWidthCap).toBeGreaterThan(0);
     });

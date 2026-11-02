@@ -20,6 +20,8 @@ export function buildCoreCollapsedControlActions(opts: Readonly<{
     profileIcon: string;
     envVarsCount?: number;
     engineLabel?: string | null;
+    permissionLabel?: string | null;
+    onPermissionClick?: () => void;
     agentType?: AgentId;
     machineName?: string | null;
     currentPath?: string | null;
@@ -40,6 +42,20 @@ export function buildCoreCollapsedControlActions(opts: Readonly<{
     blurInput: () => void;
 }>): Partial<Record<AgentInputControlId, ReadonlyArray<ActionListItem>>> {
     const controlActionsById: Partial<Record<AgentInputControlId, ReadonlyArray<ActionListItem>>> = {};
+
+    if (opts.onPermissionClick) {
+        controlActionsById.permission = [{
+            id: 'permission',
+            label: t('settings.permissions'),
+            subtitle: opts.permissionLabel ?? undefined,
+            icon: <Icon name="shield-check" size={16} color={opts.tint} />,
+            onPress: () => {
+                hapticsLight();
+                opts.dismiss();
+                opts.onPermissionClick?.();
+            },
+        }];
+    }
 
     if (opts.onProfileClick) {
         controlActionsById.profile = [{

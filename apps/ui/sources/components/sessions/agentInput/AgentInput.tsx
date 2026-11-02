@@ -192,6 +192,8 @@ const INPUT_EXPANSION_TOGGLE_HIDE_OFFSET_PX = 12;
 const INPUT_EXPANSION_TOGGLE_INPUT_PADDING_RIGHT = 32;
 const AGENT_INPUT_CONTAINER_VERTICAL_PADDING = 4;
 const AGENT_INPUT_CONTAINER_VERTICAL_CHROME_HEIGHT = AGENT_INPUT_CONTAINER_VERTICAL_PADDING * 2;
+// Status, one text line, 48dp controls and panel spacing must fit together.
+const AGENT_INPUT_MIN_SCROLLABLE_HEIGHT = 200;
 const AGENT_INPUT_PANEL_PADDING_TOP = 2;
 const AGENT_INPUT_PANEL_PADDING_BOTTOM = 8;
 // Composer panel corner radius. Shared by the panel surface, its cast-shadow wrapper so the drop
@@ -248,6 +250,8 @@ function areStructuredInputMentionListsEqual(
 }
 
 interface AgentInputProps {
+    /** Host content above the composer, included in its native scroll budget. */
+    topContent?: React.ReactNode;
     value: string;
     placeholder: string;
     onChangeText: (text: string) => void;
@@ -1116,10 +1120,26 @@ const stylesheet = StyleSheet.create((theme, runtime) => ({
     },
 }));
 
+function AgentInputViewport(props: Readonly<{ children: React.ReactNode; maxHeight?: number }>): React.ReactElement {
+    if (Platform.OS !== 'android') return <>{props.children}</>;
+    return (
+        <ScrollView
+            testID="agent-input-scroll-viewport"
+            style={{ maxHeight: props.maxHeight, flexGrow: 0 }}
+            scrollEnabled
+            keyboardShouldPersistTaps="handled"
+            nestedScrollEnabled
+        >
+            {props.children}
+        </ScrollView>
+    );
+}
+
 export const AgentInput = React.memo(React.forwardRef<MultiTextInputHandle, AgentInputProps>((props, ref) => {
     const styles = stylesheet;
     const { theme } = useUnistyles();
-    const { width: screenWidth, height: screenHeight } = useWindowDimensions();
+    const { width: screenWidth, height: screenHeight, fontScale } = useWindowDimensions();
+    const uiFontScale = useLocalSetting('uiFontScale');
     const voiceEnabled = useFeatureEnabled('voice');
     const uiBackdropBlurEnabled = useLocalSetting('uiBackdropBlurEnabled') !== false;
     const keyboardShortcutsV2Enabled = useSetting('keyboardShortcutsV2Enabled') === true;
@@ -1160,6 +1180,11 @@ export const AgentInput = React.memo(React.forwardRef<MultiTextInputHandle, Agen
         maxPanelHeight: props.maxPanelHeight,
         mode: props.panelMaxHeightMode,
     });
+    // Android landscape keyboards can leave less room than the fixed rows need.
+    // The shared viewport scrolls the whole composer instead of clipping its card.
+    const scrollCompactComposer = Platform.OS === 'android'
+        && typeof hostPanelMaxHeight === 'number'
+        && hostPanelMaxHeight < AGENT_INPUT_MIN_SCROLLABLE_HEIGHT * fontScale * uiFontScale;
     const [rootHeightPx, setRootHeightPx] = React.useState<number | null>(null);
     const [panelHeightPx, setPanelHeightPx] = React.useState<number | null>(null);
     const [inputContainerHeightPx, setInputContainerHeightPx] = React.useState<number | null>(null);
@@ -1169,12 +1194,12 @@ export const AgentInput = React.memo(React.forwardRef<MultiTextInputHandle, Agen
     const [composerAttentionHeightPx, setComposerAttentionHeightPx] = React.useState<number>(0);
     const [variableContentBeforeInputHeightPx, setVariableContentBeforeInputHeightPx] = React.useState<number>(0);
     const effectivePanelMaxHeight = React.useMemo(() => {
-        if (typeof hostPanelMaxHeight !== 'number') return undefined;
+        if (scrollCompactComposer || typeof hostPanelMaxHeight !== 'number') return undefined;
         const nonPanelChromeHeight = rootHeightPx != null && panelHeightPx != null
             ? Math.max(0, rootHeightPx - panelHeightPx)
             : 0;
         return Math.max(0, hostPanelMaxHeight - nonPanelChromeHeight);
-    }, [hostPanelMaxHeight, panelHeightPx, rootHeightPx]);
+    }, [hostPanelMaxHeight, panelHeightPx, rootHeightPx, scrollCompactComposer]);
     const panelVariableSectionMaxHeight = React.useMemo(() => {
         if (typeof effectivePanelMaxHeight !== 'number') return undefined;
         return computeAgentInputKeyboardOpenVariableSectionMaxHeight({
@@ -1182,7 +1207,9 @@ export const AgentInput = React.memo(React.forwardRef<MultiTextInputHandle, Agen
             footerHeight: actionFooterHeightPx + composerAttentionHeightPx,
         });
     }, [actionFooterHeightPx, composerAttentionHeightPx, effectivePanelMaxHeight]);
-    const fallbackInputMaxHeight = props.inputMaxHeight ?? defaultInputMaxHeight;
+    const fallbackInputMaxHeight = scrollCompactComposer
+        ? Math.max(40, props.inputMaxHeight ?? defaultInputMaxHeight)
+        : props.inputMaxHeight ?? defaultInputMaxHeight;
     const minimumMeasuredPanelFixedChromeHeight = Platform.OS === 'web'
         ? actionFooterHeightPx
             + composerAttentionHeightPx
@@ -2640,6 +2667,9 @@ export const AgentInput = React.memo(React.forwardRef<MultiTextInputHandle, Agen
         profileIcon,
         envVarsCount: props.envVarsCount,
         engineLabel: engineChipLabel,
+        permissionLabel: effectivePermissionLabel,
+        canChangePermission: Boolean(props.onPermissionModeChange),
+        onPermissionClick: props.onPermissionClick,
         agentType: props.agentType,
         machineName: props.machineName,
         currentPath: props.currentPath,
@@ -2923,7 +2953,7 @@ export const AgentInput = React.memo(React.forwardRef<MultiTextInputHandle, Agen
                 submitBehavior={submitBehavior}
                 onSubmitEditing={handleSubmitEditing}
                 maxHeight={resolvedInputMaxHeight}
-                minHeight={props.minHeight}
+                minHeight={scrollCompactComposer ? 40 : props.minHeight}
                 editable={!props.disabled}
                 onFilesPasted={props.onAttachmentsAdded}
                 onContentHeightChange={handleInputContentHeightChange}
@@ -3168,6 +3198,8 @@ export const AgentInput = React.memo(React.forwardRef<MultiTextInputHandle, Agen
 
     return (
         <SyncPerformanceReactProfiler id="sessions.agentInput">
+            <AgentInputViewport maxHeight={hostPanelMaxHeight}>
+                {props.topContent}
             <View
                 pointerEvents={Platform.OS === 'web' ? 'auto' : undefined}
                 testID="agent-input-root"
@@ -3190,7 +3222,7 @@ export const AgentInput = React.memo(React.forwardRef<MultiTextInputHandle, Agen
                 <AgentInputOverlayLayer
                     screenWidth={screenWidth}
                     showPermissionPopover={showPermissionPopover && Boolean(props.onPermissionModeChange)}
-                    permissionChipAnchorRef={permissionChipAnchorRef}
+                    permissionChipAnchorRef={actionBarIsCollapsed ? actionMenuAnchorRef : permissionChipAnchorRef}
                     onPermissionPopoverRequestClose={closePermissionPopover}
                     onPermissionSelect={handlePermissionSelect}
                     agentId={engineChipAgentId}
@@ -3455,6 +3487,7 @@ export const AgentInput = React.memo(React.forwardRef<MultiTextInputHandle, Agen
                 </View>
                 </View>
             </View>
+            </AgentInputViewport>
         </SyncPerformanceReactProfiler>
     );
 }));

@@ -125,6 +125,8 @@ export function createAttachmentActionChip(params: Readonly<{
             <Pressable
                 ref={ctx.chipAnchorRef}
                 testID="agent-input-attachments-chip"
+                accessibilityRole="button"
+                accessibilityLabel={t('common.attach')}
                 onPress={() => {
                     if (showChooser) {
                         ctx.toggleCollapsedPopover?.('attachments-add');

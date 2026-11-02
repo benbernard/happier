@@ -26,13 +26,16 @@ export function createMachineActionChip(params: Readonly<{
             ref={params.anchorRef}
             key="machine"
             testID="agent-input-machine-chip"
+            accessibilityRole="button"
+            accessibilityLabel={params.machineName === null
+                ? t('agentInput.noMachinesAvailable')
+                : params.machineName ?? t('newSession.selectMachineTitle')}
             onPress={params.onPress}
-            hitSlop={{ top: 5, bottom: 10, left: 0, right: 0 }}
             style={(state) => params.chipStyle(state.pressed)}
         >
             {normalizeNodeForView(<Icon name="desktop" size={AGENT_INPUT_CHIP_ICON_SIZE_PX} color={params.tint} style={AGENT_INPUT_CHIP_ICON_STYLE} />)}
             {params.showLabel ? (
-                <Text style={params.textStyle}>
+                <Text numberOfLines={1} style={[params.textStyle, { flexShrink: 1 }]}>
                     {params.machineName === null
                         ? t('agentInput.noMachinesAvailable')
                         : (typeof params.machineName === 'string'

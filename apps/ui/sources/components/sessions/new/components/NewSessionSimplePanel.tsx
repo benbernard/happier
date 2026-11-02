@@ -512,8 +512,8 @@ function NewSessionSimplePanelComposer({
                 <View
                     style={{ width: '100%', alignSelf: 'center' }}
                 >
-                    {props.composerTopContent}
                     <AgentInput
+                        topContent={props.composerTopContent}
                         value={sessionPrompt}
                         onChangeText={props.setSessionPrompt}
                         onSend={attachmentsController.handleSend}
