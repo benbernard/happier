@@ -32,6 +32,8 @@ interface ChatHeaderViewProps {
     subtitle?: string;
     subtitleEllipsizeMode?: 'head' | 'tail';
     badges?: ReadonlyArray<string>;
+    hostLabel?: string;
+    hostBadgeLabel?: string;
     onBackPress?: () => void;
     avatarId?: string;
     /** Resolved agent for this session, when there is one. Shown in place of the avatar on request. */
@@ -64,6 +66,8 @@ export const ChatHeaderView = React.memo(function ChatHeaderView({
     subtitle,
     subtitleEllipsizeMode = 'tail',
     badges,
+    hostLabel,
+    hostBadgeLabel,
     onBackPress,
     avatarId,
     agentId,
@@ -213,27 +217,96 @@ export const ChatHeaderView = React.memo(function ChatHeaderView({
                                 </View>
                             ))
                         ) : null}
-                    </View>
-                    {subtitle && (
-                        <Text
-                            numberOfLines={1}
-                            ellipsizeMode={shouldUseWebSubtitleStartEllipsis ? undefined : subtitleEllipsizeMode}
-                            style={[
-                                styles.subtitle,
-                                shouldUseWebSubtitleStartEllipsis ? styles.subtitleHeadWeb : null,
-                                {
-                                    color: theme.colors.chrome.header.foreground,
-                                    opacity: 0.7,
-                                    ...Typography.default()
-                                }
-                            ]}
-                        >
-                            {shouldUseWebSubtitleStartEllipsis ? (
-                                <Text style={styles.subtitleHeadTextWeb}>
-                                    {subtitle}
+                        {hostBadgeLabel ? (
+                            <View
+                                style={[
+                                    styles.badge,
+                                    styles.hostBadge,
+                                    { backgroundColor: theme.colors.state.neutral.background },
+                                ]}
+                                testID={resolveOptionalSessionScreenTestId(sessionScreenTestIdsEnabled, 'session-header-badge:host')}
+                            >
+                                <Icon
+                                    name="desktop"
+                                    size={12}
+                                    color={theme.colors.state.neutral.foreground}
+                                />
+                                <Text
+                                    numberOfLines={1}
+                                    style={[
+                                        styles.badgeText,
+                                        {
+                                            color: theme.colors.state.neutral.foreground,
+                                            ...Typography.default('semiBold'),
+                                        },
+                                    ]}
+                                >
+                                    {hostBadgeLabel}
                                 </Text>
-                            ) : subtitle}
-                        </Text>
+                            </View>
+                        ) : null}
+                    </View>
+                    {(hostLabel || subtitle) && (
+                        <View style={styles.subtitleRow}>
+                            {hostLabel ? (
+                                <View style={styles.subtitleHost}>
+                                    <Icon
+                                        name="desktop"
+                                        size={12}
+                                        color={theme.colors.chrome.header.foreground}
+                                    />
+                                    <Text
+                                        numberOfLines={1}
+                                        style={[
+                                            styles.subtitle,
+                                            styles.subtitleHostText,
+                                            {
+                                                color: theme.colors.chrome.header.foreground,
+                                                ...Typography.default('semiBold')
+                                            }
+                                        ]}
+                                    >
+                                        {hostLabel}
+                                    </Text>
+                                    {subtitle ? (
+                                        <Text
+                                            style={[
+                                                styles.subtitle,
+                                                styles.subtitleSeparator,
+                                                {
+                                                    color: theme.colors.chrome.header.foreground,
+                                                    ...Typography.default()
+                                                }
+                                            ]}
+                                        >
+                                            ·
+                                        </Text>
+                                    ) : null}
+                                </View>
+                            ) : null}
+                            {subtitle ? (
+                                <Text
+                                    numberOfLines={1}
+                                    ellipsizeMode={shouldUseWebSubtitleStartEllipsis ? undefined : subtitleEllipsizeMode}
+                                    style={[
+                                        styles.subtitle,
+                                        styles.subtitleText,
+                                        shouldUseWebSubtitleStartEllipsis ? styles.subtitleHeadWeb : null,
+                                        {
+                                            color: theme.colors.chrome.header.foreground,
+                                            opacity: 0.7,
+                                            ...Typography.default()
+                                        }
+                                    ]}
+                                >
+                                    {shouldUseWebSubtitleStartEllipsis ? (
+                                        <Text style={styles.subtitleHeadTextWeb}>
+                                            {subtitle}
+                                        </Text>
+                                    ) : subtitle}
+                                </Text>
+                            ) : null}
+                        </View>
                     )}
                 </View>
 
@@ -328,6 +401,35 @@ const styles = StyleSheet.create(() => ({
         lineHeight: 14,
         marginTop: 1,
     },
+    subtitleRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        marginTop: 1,
+        minWidth: 0,
+    },
+    subtitleHost: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        flexShrink: 0,
+        minWidth: 0,
+    },
+    subtitleHostText: {
+        marginTop: 0,
+        flexShrink: 1,
+        minWidth: 0,
+        opacity: 0.7,
+    },
+    subtitleText: {
+        marginTop: 0,
+        flexShrink: 1,
+        minWidth: 0,
+    },
+    subtitleSeparator: {
+        marginTop: 0,
+        opacity: 0.45,
+    },
     subtitleHeadWeb: {
         writingDirection: 'rtl' as const,
         textAlign: 'left' as const,
@@ -345,9 +447,18 @@ const styles = StyleSheet.create(() => ({
         paddingHorizontal: 8,
         paddingVertical: 2,
     },
+    hostBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        flexShrink: 1,
+        minWidth: 0,
+    },
     badgeText: {
         fontSize: 10,
         lineHeight: 14,
+        flexShrink: 1,
+        minWidth: 0,
     },
     rightElementContainer: {
         flexDirection: 'row',

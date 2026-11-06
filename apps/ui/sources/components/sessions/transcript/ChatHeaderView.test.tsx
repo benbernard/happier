@@ -189,6 +189,37 @@ describe('ChatHeaderView', () => {
         expect(screen.getTextContent()).toContain('Codex · happy-host');
     });
 
+    it('renders the host before the subtitle on folded layouts', async () => {
+        const { ChatHeaderView } = await import('./ChatHeaderView');
+
+        const screen = await renderScreen(
+            <ChatHeaderView
+                title="Title"
+                subtitle="remote-dev"
+                hostLabel="Dad Rectangle"
+            />,
+        );
+
+        const text = screen.getTextContent();
+        expect(text).toContain('Dad Rectangle');
+        expect(text).toContain('remote-dev');
+        expect(text.indexOf('Dad Rectangle')).toBeLessThan(text.indexOf('remote-dev'));
+    });
+
+    it('renders a host badge beside the title on unfolded layouts', async () => {
+        const { ChatHeaderView } = await import('./ChatHeaderView');
+
+        const screen = await renderScreen(
+            <ChatHeaderView
+                title="Title"
+                hostBadgeLabel="Dad Rectangle"
+            />,
+        );
+
+        expect(() => screen.findByProps({ testID: 'session-header-badge:host' })).not.toThrow();
+        expect(screen.getTextContent()).toContain('Dad Rectangle');
+    });
+
     // The header's leading slot is a user preference. `agentLogo` with no resolvable agent renders
     // nothing rather than quietly falling back to the avatar, which would override a choice the user
     // already made.
