@@ -263,13 +263,14 @@ function resolveRowSubtitle(input: Readonly<{
     if (reachableDisplay) {
         const workspaceSubtitle = normalizeNonEmptyString(reachableDisplay.workspaceSubtitle) ?? '';
         const machineLabel = normalizeNonEmptyString(reachableDisplay.machineLabel) ?? '';
+        const hostLabel = machineLabel === 'unknown' ? '' : machineLabel;
         return {
-            subtitle: input.settings.hasMultipleMachines
-                ? (machineLabel && workspaceSubtitle
-                    ? `${machineLabel} · ${workspaceSubtitle}`
-                    : machineLabel || workspaceSubtitle)
-                : workspaceSubtitle,
-            subtitleEllipsizeMode: reachableDisplay.workspaceSubtitleEllipsizeMode ?? 'head',
+            subtitle: hostLabel && workspaceSubtitle
+                ? `${hostLabel} · ${workspaceSubtitle}`
+                : hostLabel || workspaceSubtitle,
+            subtitleEllipsizeMode: hostLabel
+                ? 'tail'
+                : (reachableDisplay.workspaceSubtitleEllipsizeMode ?? 'head'),
         };
     }
 

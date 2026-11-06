@@ -4,6 +4,7 @@ import Color from 'color';
 import { isRecoveredHistoryTranscriptObservationProvenance } from '@happier-dev/protocol';
 
 import { AgentContentView } from '@/components/sessions/transcript/AgentContentView';
+import { resolveSessionHeaderHost } from './resolveSessionHeaderHost';
 import { AgentInput, type AgentInputSendOptions } from '@/components/sessions/agentInput';
 import { COMPOSER_CONTENT_HORIZONTAL_INSET } from '@/components/sessions/agentInput/composerContentInset';
 import {
@@ -1750,7 +1751,9 @@ export const SessionView = React.memo((props: SessionViewProps) => {
                 agentId: undefined,
                 rightElement: undefined,
                 isConnected: false,
-                flavor: null
+                flavor: null,
+                hostLabel: undefined,
+                hostBadgeLabel: undefined
             };
         }
 
@@ -1763,7 +1766,9 @@ export const SessionView = React.memo((props: SessionViewProps) => {
                 agentId: undefined,
                 rightElement: undefined,
                 isConnected: false,
-                flavor: null
+                flavor: null,
+                hostLabel: undefined,
+                hostBadgeLabel: undefined
             };
         }
 
@@ -1776,7 +1781,9 @@ export const SessionView = React.memo((props: SessionViewProps) => {
                 agentId: undefined,
                 rightElement: undefined,
                 isConnected: false,
-                flavor: null
+                flavor: null,
+                hostLabel: undefined,
+                hostBadgeLabel: undefined
             };
         }
 
@@ -1790,7 +1797,9 @@ export const SessionView = React.memo((props: SessionViewProps) => {
                 agentId: undefined,
                 rightElement: undefined,
                 isConnected: false,
-                flavor: null
+                flavor: null,
+                hostLabel: undefined,
+                hostBadgeLabel: undefined
             };
         }
         const isConnected = headerSession.presence === 'online';
@@ -1804,6 +1813,12 @@ export const SessionView = React.memo((props: SessionViewProps) => {
                     : directSessionLink.machineId,
             ].join(' · ')
             : null;
+        const hostPresentation = directSessionLink
+            ? { subtitleLabel: null, badgeLabel: null }
+            : resolveSessionHeaderHost({
+                machineLabel: sessionWorkspacePresentation?.machineLabel ?? null,
+                folded: shouldFoldHeaderIconActions,
+            });
         const openSessionInfo = () => routerRef.current.navigate(buildCurrentSessionHref('/info') as any, {
             dangerouslySingular() {
                 return 'session-info';
@@ -1837,6 +1852,8 @@ export const SessionView = React.memo((props: SessionViewProps) => {
 	            badges: providerBadge ? [storageBadge, providerBadge] : [storageBadge],
 	            isConnected: isConnected,
 	            flavor: headerSession.metadata?.flavor || null,
+	            hostLabel: hostPresentation.subtitleLabel ?? undefined,
+	            hostBadgeLabel: hostPresentation.badgeLabel ?? undefined,
 	        };
 	    }, [
         directSessionRuntime,

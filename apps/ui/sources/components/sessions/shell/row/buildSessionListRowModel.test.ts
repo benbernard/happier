@@ -986,7 +986,33 @@ describe('buildSessionListRowModel', () => {
         expect(modelA.subtitle).toBe('MacBook · Repo A');
         expect(modelA.subtitleEllipsizeMode).toBe('tail');
         expect(modelB.subtitle).toBe('Linux Box · Repo B');
-        expect(modelB.subtitleEllipsizeMode).toBe('head');
+        expect(modelB.subtitleEllipsizeMode).toBe('tail');
+    });
+
+    it('shows the host on the subtitle line even when only one machine is present', () => {
+        const session = createRenderable('s1');
+        const settings = createSettings({
+            hasMultipleMachines: false,
+            reachableSessionDisplayByKey: {
+                [sessionTagKey('server-a', 's1')]: {
+                    machineLabel: 'Dad Rectangle',
+                    workspaceSubtitle: 'homelab-config',
+                    workspaceSubtitleEllipsizeMode: 'head',
+                },
+            },
+        });
+
+        const model = buildSessionListRowModel({
+            item: createSessionItem(session, { serverId: 'server-a' }),
+            state: {},
+            isFirst: true,
+            isLast: true,
+            isSingle: true,
+            settings,
+        });
+
+        expect(model.subtitle).toBe('Dad Rectangle · homelab-config');
+        expect(model.subtitleEllipsizeMode).toBe('tail');
     });
 
     it('preserves archived, pinned, unread, folder, and tag facts for presentational rows', () => {
