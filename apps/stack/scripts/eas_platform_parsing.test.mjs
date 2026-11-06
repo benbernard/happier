@@ -49,7 +49,7 @@ test('hstack eas build honors space-separated --platform android', async () => {
   assert.ok(!res.stdout.includes('--platform ios'), `expected not to default to ios when platform is explicitly set\nstdout:\n${res.stdout}`);
 });
 
-test('hstack eas build falls back to ios for invalid --platform value', async () => {
+test('hstack eas build defaults to android when --platform is omitted', async () => {
   const scriptsDir = dirname(fileURLToPath(import.meta.url));
   const rootDir = dirname(scriptsDir);
 
@@ -62,11 +62,34 @@ test('hstack eas build falls back to ios for invalid --platform value', async ()
   };
 
   const res = await runNode(
-    [join(rootDir, 'scripts', 'eas.mjs'), 'build', '--platform', 'invalid-platform', '--profile', 'production'],
+    [join(rootDir, 'scripts', 'eas.mjs'), 'build', '--profile', 'production', '--non-interactive'],
     { cwd: rootDir, env }
   );
 
   assert.equal(res.code, 0, `expected exit 0, got ${res.code}\nstdout:\n${res.stdout}\nstderr:\n${res.stderr}`);
-  assert.match(res.stdout, /--platform ios\b/, `expected invalid platform to normalize to ios\nstdout:\n${res.stdout}`);
-  assert.ok(!res.stdout.includes('--platform invalid-platform'), `expected invalid platform not to be forwarded\nstdout:\n${res.stdout}`);
+  assert.match(res.stdout, /--platform android\b/, `expected Android to be the default platform\nstdout:\n${res.stdout}`);
+});
+
+test('hstack eas build rejects iOS, cross-platform, and unknown platform values', async () => {
+  const scriptsDir = dirname(fileURLToPath(import.meta.url));
+  const rootDir = dirname(scriptsDir);
+
+  const env = {
+    ...process.env,
+    HAPPIER_STACKS_COMPONENT_DIR_HAPPIER_UI: join(rootDir, '..', 'ui'),
+    HAPPIER_STACKS_COMPONENT_DIR_HAPPIER_CLI: join(rootDir, '..', 'cli'),
+    HAPPIER_STACKS_COMPONENT_DIR_HAPPIER_SERVER: join(rootDir, '..', 'server'),
+    HSTACK_EAS_TEST_STUB: '1',
+  };
+
+  for (const platform of ['ios', 'all', 'invalid-platform']) {
+    const res = await runNode(
+      [join(rootDir, 'scripts', 'eas.mjs'), 'build', '--platform', platform, '--profile', 'production'],
+      { cwd: rootDir, env }
+    );
+
+    assert.equal(res.code, 1, `expected ${platform} to be rejected, got exit ${res.code}\nstdout:\n${res.stdout}\nstderr:\n${res.stderr}`);
+    assert.match(res.stdout, /Android-only fork/i, `expected an Android-only error for ${platform}\nstdout:\n${res.stdout}`);
+    assert.ok(!res.stdout.includes(`--platform ${platform}`), `expected ${platform} not to be forwarded\nstdout:\n${res.stdout}`);
+  }
 });

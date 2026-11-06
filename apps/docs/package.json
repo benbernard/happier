@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "tsc": "node ../../scripts/workspaces/runTypeScriptCli.mjs",
-    "build": "node scripts/build.mjs",
+    "build": "node ../../scripts/android-only-build-guard.mjs docs-build && node scripts/build.mjs",
     "test": "node --test \"scripts/*.test.mjs\" \"src/**/*.test.mjs\"",
     "check:content": "node scripts/checkContent.mjs",
     "generate:reference": "node scripts/generateReference.mjs",

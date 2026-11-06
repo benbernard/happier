@@ -11,8 +11,12 @@ async function readJson(relativePath) {
     return JSON.parse(await readFile(join(repoRoot, relativePath), 'utf8'));
 }
 
-test('ui tauri workflows build the bootstrap sidecar before dev/build and cargo tracks the source artifact', async () => {
+test('ui tauri workflows build the bootstrap sidecar before dev/build and cargo tracks the source artifact', async (t) => {
     const uiPackageJson = await readJson('apps/ui/package.json');
+    if (String(uiPackageJson?.scripts?.['tauri:prepare:sidecar'] ?? '').includes('android-only-build-guard')) {
+        t.skip('Desktop builds are disabled in this Android-only fork');
+        return;
+    }
     const bootstrapPackageJson = await readJson('apps/bootstrap/package.json');
     const tauriConfig = await readJson('apps/ui/src-tauri/tauri.conf.json');
     const buildRs = await readFile(join(repoRoot, 'apps', 'ui', 'src-tauri', 'build.rs'), 'utf8');

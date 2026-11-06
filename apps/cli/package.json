@@ -93,7 +93,7 @@
   "scripts": {
     "tsc": "node ../../scripts/workspaces/runTypeScriptCli.mjs",
     "typecheck": "node ../../scripts/workspaces/runTypeScriptCli.mjs --noEmit",
-    "build": "node scripts/build.mjs",
+    "build": "node ../../scripts/android-only-build-guard.mjs cli-build && node scripts/build.mjs",
     "test": "$npm_execpath run test:unit",
     "vitest": "vitest",
     "test:unit": "yarn -s test:unit:vitest && yarn -s test:import-cycles",

@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-test('apps/ui package.json exposes shared stack-owned Tauri dev entrypoints', async () => {
+test('apps/ui package.json exposes only the Android phone build entrypoints', async () => {
   const scriptsDir = dirname(fileURLToPath(import.meta.url));
   const packageRoot = dirname(scriptsDir);
 
@@ -12,15 +12,41 @@ test('apps/ui package.json exposes shared stack-owned Tauri dev entrypoints', as
   const pkg = JSON.parse(raw);
   const scripts = pkg?.scripts ?? {};
 
-  assert.equal(scripts['tauri:dev'], 'node ../stack/scripts/tauri_dev.mjs');
-  assert.equal(scripts['ui:tauri'], 'node ../stack/scripts/tauri_dev.mjs');
-  assert.equal(scripts['tauri:qa'], 'node ./scripts/tauriMcpQa.mjs');
-  assert.equal(scripts['tauri:mcp:server'], 'npx -y @hypothesi/tauri-mcp-server');
-  assert.equal(scripts['tauri:mcp:cli'], 'npx -y -p @hypothesi/tauri-mcp-cli tauri-mcp');
-  assert.equal(scripts['tauri:mcp:session:start'], 'npx -y -p @hypothesi/tauri-mcp-cli tauri-mcp driver-session start --port 9223');
+  for (const key of [
+    'ios',
+    'ios:connected-device',
+    'ios:publicdev-dev-client',
+    'ios:dev',
+    'ios:preview',
+    'ios:production',
+    'submit',
+    'tauri:prepare:sidecar',
+    'tauri:prepare:dev',
+    'tauri:prepare:build',
+    'tauri:dev',
+    'tauri:qa',
+    'tauri:mcp:server',
+    'tauri:mcp:cli',
+    'tauri:mcp:session:start',
+    'tauri:build:dev',
+    'tauri:build:preview',
+    'tauri:build:production',
+    'ui:tauri',
+  ]) {
+    assert.equal(typeof scripts[key], 'string', `${key} should remain defined`);
+    assert.match(scripts[key], /android-only-build-guard/, `${key} should be disabled`);
+  }
+
+  assert.match(scripts.ios, /expo run:ios/);
+  assert.match(scripts['tauri:build:production'], /runTauriCli\.mjs/);
+  assert.match(scripts['tauri:prepare:sidecar'], /prepareTauriSidecar\.mjs/);
+  assert.equal(typeof scripts.android, 'string');
+  assert.equal(typeof scripts['android:dev'], 'string');
+  assert.equal(typeof scripts['android:preview'], 'string');
+  assert.equal(typeof scripts['android:production'], 'string');
 });
 
-test('apps/ui Tauri prepare scripts enable Expo Router web modal support', async () => {
+test('apps/ui prebuild targets Android only', async () => {
   const scriptsDir = dirname(fileURLToPath(import.meta.url));
   const packageRoot = dirname(scriptsDir);
 
@@ -28,8 +54,8 @@ test('apps/ui Tauri prepare scripts enable Expo Router web modal support', async
   const pkg = JSON.parse(raw);
   const scripts = pkg?.scripts ?? {};
 
-  assert.match(scripts['tauri:prepare:dev'], /EXPO_UNSTABLE_WEB_MODAL=1/);
-  assert.match(scripts['tauri:prepare:build'], /EXPO_UNSTABLE_WEB_MODAL=1/);
+  assert.match(scripts.prebuild, /--platform android/);
+  assert.doesNotMatch(scripts.prebuild, /--platform ios/);
 });
 
 test('apps/ui Expo update scripts enable Expo Router web modal support', async () => {

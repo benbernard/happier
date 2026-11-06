@@ -14,10 +14,12 @@ Package-specific instructions for `apps/ui`. These supplement the root constitut
 Use yarn:
 
 - `yarn start` — Expo development server.
-- `yarn ios` / `yarn android` / `yarn web` — platform targets.
+- `yarn android` — the only supported native app build target in this fork.
+- `yarn web` — development server for browser inspection only; it is not a release build.
 - `yarn typecheck` — required after TypeScript changes.
 - `yarn test` — Vitest tests.
-- `yarn tauri:dev` / `yarn tauri:build:*` — desktop flows.
+
+This fork builds the Android phone app only. iOS, web release, and desktop build entry points remain in the source tree but are disabled by the Android-only build guard. Do not re-enable them without an explicit owner decision.
 
 Use the smallest relevant test slice while iterating, then run the UI typecheck/build-enforcing and broader relevant lanes before handoff.
 
