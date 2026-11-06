@@ -13,6 +13,11 @@ const repoRoot = resolve(here, '..', '..');
 test('macOS Tauri build and bundle reopen actool stdin without changing tool arguments or environment', {
   skip: process.platform === 'win32' && 'macOS process boundary uses POSIX tools',
 }, (t) => {
+  const desktopScripts = JSON.parse(fs.readFileSync(resolve(repoRoot, 'apps/ui/package.json'), 'utf8')).scripts;
+  if (String(desktopScripts['tauri:build:production'] ?? '').includes('android-only-build-guard')) {
+    t.skip('Desktop builds are disabled in this Android-only fork');
+    return;
+  }
   const root = fs.mkdtempSync(resolve(os.tmpdir(), 'tauri-actool-stdin-'));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const bin = resolve(root, 'bin');

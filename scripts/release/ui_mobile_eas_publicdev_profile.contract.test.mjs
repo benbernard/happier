@@ -67,16 +67,15 @@ test('apps/ui/eas.json defines publicdev profiles for the public nightly dev lan
   assert.equal(publicdevSubmit?.android?.track, 'internal');
 });
 
-test('publicdev dev-client local iOS builds cleanly regenerate native code under the EAS profile environment', async () => {
+test('publicdev dev-client iOS builds remain implemented but disabled at the entrypoint', async () => {
   const uiDir = path.join(repoRoot, 'apps', 'ui');
   const packageJson = JSON.parse(fs.readFileSync(path.join(uiDir, 'package.json'), 'utf8'));
   const runnerPath = path.join(uiDir, 'scripts', 'runPublicdevDevClientIos.mjs');
 
-  assert.equal(
-    packageJson?.scripts?.['ios:publicdev-dev-client'],
-    'yarn -s ensure:workspace:built && node ./scripts/runPublicdevDevClientIos.mjs',
-  );
-  assert.ok(fs.existsSync(runnerPath), 'expected the publicdev dev-client iOS runner to exist');
+  assert.match(String(packageJson?.scripts?.ios ?? ''), /android-only-build-guard/);
+  assert.match(String(packageJson?.scripts?.['ios:publicdev-dev-client'] ?? ''), /android-only-build-guard/);
+  assert.match(String(packageJson?.scripts?.['ios:publicdev-dev-client'] ?? ''), /runPublicdevDevClientIos\.mjs/);
+  assert.ok(fs.existsSync(runnerPath), 'expected the publicdev dev-client iOS runner to remain in the source tree');
 
   const { createPublicdevDevClientIosPlan } = await import(pathToFileURL(runnerPath).href);
   const plan = createPublicdevDevClientIosPlan({

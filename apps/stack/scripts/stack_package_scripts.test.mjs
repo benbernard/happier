@@ -12,8 +12,13 @@ test('apps/stack package.json routes package aliases through their canonical ent
   const pkg = JSON.parse(raw);
   const scripts = pkg?.scripts ?? {};
 
-  assert.equal(scripts['ui:tauri'], 'node ./scripts/tauri_dev.mjs');
-  assert.equal(scripts['tauri:dev'], 'node ./scripts/tauri_dev.mjs');
+  for (const key of ['ui:tauri', 'tauri:dev', 'mobile:ios', 'mobile:ios:release', 'mobile:ios:profile', 'mobile:install']) {
+    assert.equal(typeof scripts[key], 'string', `${key} should remain defined`);
+    assert.match(scripts[key], /android-only-build-guard/, `${key} should be disabled`);
+  }
+  assert.match(scripts['ui:tauri'], /tauri_dev\.mjs/);
+  assert.match(scripts['mobile:ios'], /mobile\.mjs --run-ios/);
+  assert.match(scripts['mobile:prebuild'], /--platform=android/);
   assert.equal(scripts.happier, 'node ./bin/happier.mjs');
   assert.equal(scripts.stack, 'node ./bin/hstack.mjs stack');
 });

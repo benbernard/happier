@@ -20,13 +20,16 @@ test('repo root package.json exposes repo-local hstack scripts', async () => {
   assert.equal(scripts.start, 'node ./apps/stack/scripts/repo_local.mjs start');
   assert.equal(scripts.build, 'node ./apps/stack/scripts/repo_local.mjs build');
   assert.equal(scripts.tui, 'node ./apps/stack/scripts/repo_local.mjs tui');
-  assert.equal(scripts['tui:with-tauri'], 'node ./apps/stack/scripts/repo_local.mjs tui --tauri');
-  assert.equal(scripts['tui:with-mobile-tauri'], 'node ./apps/stack/scripts/repo_local.mjs tui --tauri --mobile');
+  assert.match(scripts['tui:with-tauri'], /android-only-build-guard/);
+  assert.match(scripts['tui:with-mobile-tauri'], /android-only-build-guard/);
   assert.equal(scripts['tui:with-mobile'], 'node ./apps/stack/scripts/repo_local.mjs tui dev --mobile');
   assert.equal(scripts['tauri:qa'], 'yarn --cwd apps/ui tauri:qa');
   assert.equal(scripts['tauri:mcp:server'], 'yarn --cwd apps/ui tauri:mcp:server');
   assert.equal(scripts['tauri:mcp:cli'], 'yarn --cwd apps/ui tauri:mcp:cli');
   assert.equal(scripts['tauri:mcp:session:start'], 'yarn --cwd apps/ui tauri:mcp:session:start');
+  assert.match(scripts['mobile:install'], /android-only-build-guard/);
+  assert.equal(scripts['ui:ios'], 'yarn workspace @happier-dev/app ios');
+  assert.equal(scripts['ui:android'], 'yarn workspace @happier-dev/app android');
   assert.equal(scripts['cli:activate'], 'node ./apps/stack/scripts/repo_cli_activate.mjs');
   assert.equal(scripts['cli:activate:path'], 'node ./apps/stack/scripts/repo_cli_activate.mjs --install-path');
   assert.equal(scripts.auth, 'node ./apps/stack/scripts/repo_local.mjs auth');
@@ -50,5 +53,6 @@ test('repo root package.json exposes repo-local hstack scripts', async () => {
   assert.equal(scripts['logs:service'], 'node ./apps/stack/scripts/repo_local.mjs logs --follow --component=service');
   assert.equal(scripts.tailscale, 'node ./apps/stack/scripts/repo_local.mjs tailscale');
   assert.equal(scripts.env, 'node ./apps/stack/scripts/repo_local.mjs env');
-  assert.equal(scripts['ui:tauri'], 'node ./apps/stack/scripts/tauri_dev.mjs');
+  assert.match(scripts['ui:tauri'], /android-only-build-guard/);
+  assert.match(scripts['ui:tauri'], /tauri_dev\.mjs/);
 });

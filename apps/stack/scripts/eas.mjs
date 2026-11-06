@@ -19,11 +19,23 @@ import { run, runCaptureResult } from './utils/proc/proc.mjs';
  * - Cloud builds will only see env vars that EAS knows about (eas.json env, EAS project vars).
  */
 
+const ANDROID_ONLY_ERROR = 'iOS and cross-platform builds are disabled in this Android-only fork; use --platform=android.';
+
 function normalizePlatform(raw) {
   const v = String(raw ?? '').trim().toLowerCase();
-  if (!v) return 'ios';
-  if (v === 'ios' || v === 'android' || v === 'all') return v;
-  return 'ios';
+  if (!v) return 'android';
+  return v;
+}
+
+function rejectNonAndroidPlatform({ json, platform }) {
+  if (platform === 'android') return false;
+  printResult({
+    json,
+    data: { ok: false, error: ANDROID_ONLY_ERROR },
+    text: `[eas] ${ANDROID_ONLY_ERROR}`,
+  });
+  process.exitCode = 1;
+  return true;
 }
 
 function getNpxRunner() {
@@ -120,15 +132,14 @@ async function main() {
   const helpText = [
     '[eas] usage:',
     '  hstack eas <subcommand> [--json] [-- <args...>]',
-    '  hstack eas build [--platform=ios|android|all] [--profile=production] [--local] [--wait|--no-wait] [--non-interactive|--interactive] [--json] [-- <extra eas args...>]',
-    '  hstack eas ios [--profile=production] [--local] [--wait|--no-wait] [--non-interactive|--interactive] [--json] [-- <extra eas build args...>]',
+    '  hstack eas build [--platform=android] [--profile=production] [--local] [--wait|--no-wait] [--non-interactive|--interactive] [--json] [-- <extra eas args...>]',
     '  hstack eas android [--profile=production] [--local] [--wait|--no-wait] [--non-interactive|--interactive] [--json] [-- <extra eas build args...>]',
     '  hstack eas env:sync [--environment=production|preview|development] [--dry-run] [--hide-values] [--visibility=plaintext|sensitive|secret] [--scope=project|account] [--json]',
     '',
     'examples:',
-    '  hstack stack eas happier build --platform ios --profile production',
-    '  hstack stack eas happier build --platform ios --profile production --local',
-    '  hstack stack eas happier ios --profile production',
+    '  hstack stack eas happier build --platform android --profile production',
+    '  hstack stack eas happier build --platform android --profile production --local',
+    '  hstack stack eas happier android --profile production',
     '  hstack stack eas happier whoami',
     '  hstack stack eas happier login',
     '  hstack stack eas happier project:init',
@@ -173,6 +184,10 @@ async function main() {
   // This avoids network access + interactive prompts during unit tests.
   if (testStub) {
     if (effectiveSubcmd !== 'build') {
+      if (subcmd === 'submit') {
+        const platform = normalizePlatform(getFlagValue({ argv, kv, flag: '--platform' }));
+        if (rejectNonAndroidPlatform({ json, platform })) return;
+      }
       // For non-build commands, print the forwarded args shape and exit.
       const afterSubcmd = argv.slice(argv.indexOf(subcmd) + 1);
       const trimmed = sepIdx === -1 ? afterSubcmd : afterSubcmd.slice(0, afterSubcmd.indexOf('--'));
@@ -181,6 +196,7 @@ async function main() {
     }
 
     const platform = isBuildAlias ? aliasPlatform : normalizePlatform(getFlagValue({ argv, kv, flag: '--platform' }));
+    if (rejectNonAndroidPlatform({ json, platform })) return;
     const profile = String(getFlagValue({ argv, kv, flag: '--profile' }) ?? 'production').trim() || 'production';
     const local = flags.has('--local');
     const wait = flags.has('--wait');
@@ -335,6 +351,10 @@ async function main() {
 
   // Non-build subcommands (login/whoami/project:init/etc): forward directly.
   if (effectiveSubcmd !== 'build') {
+    if (subcmd === 'submit') {
+      const platform = normalizePlatform(getFlagValue({ argv, kv, flag: '--platform' }));
+      if (rejectNonAndroidPlatform({ json, platform })) return;
+    }
     // Forward everything after the first positional token, excluding "--" and its args (we append those as `extra`).
     const afterSubcmd = argv.slice(argv.indexOf(subcmd) + 1);
     const trimmed = sepIdx === -1 ? afterSubcmd : afterSubcmd.slice(0, afterSubcmd.indexOf('--'));
@@ -343,6 +363,7 @@ async function main() {
   }
 
   const platform = isBuildAlias ? aliasPlatform : normalizePlatform(getFlagValue({ argv, kv, flag: '--platform' }));
+  if (rejectNonAndroidPlatform({ json, platform })) return;
   const profile = String(getFlagValue({ argv, kv, flag: '--profile' }) ?? 'production').trim() || 'production';
   const local = flags.has('--local');
   const wait = flags.has('--wait');
